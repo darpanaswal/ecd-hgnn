@@ -26,3 +26,5 @@ import params.SyntheticEuclideanParams
 import params.SyntheticHyperbolicParams
 import params.ZINCEuclideanParams
 import params.ZINCHyperbolicParams
+import params.ENVHyperbolicParams
+import params.ENVEuclideanParams

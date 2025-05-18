@@ -65,9 +65,12 @@ class GraphPredictionTask(BaseTask):
 		train_loader, dev_loader, test_loader = self.load_data()
 
 		task_model = GraphPrediction(self.args, self.logger, self.rgnn, self.manifold).cuda()
-		model = nn.parallel.DistributedDataParallel(task_model,
-                                                  device_ids=[self.args.device_id],
-                                                  output_device=self.args.device_id)
+		if getattr(self.args, 'world_suze', 1) > 1:
+			model = nn.parallel.DistributedDataParallel(task_model,
+													device_ids=[self.args.device_id],
+													output_device=self.args.device_id)
+		else:
+			model = task_model
 		if self.args.is_regression:
 			loss_function = nn.MSELoss(reduction='sum')
 		else:
@@ -96,9 +99,10 @@ class GraphPredictionTask(BaseTask):
 				if i % 400 ==0:
 					self.report_epoch_stats()
 			
-			dev_acc, dev_loss = self.evaluate(epoch, dev_loader, 'dev', model, loss_function)
-			test_acc, test_loss = self.evaluate(epoch, test_loader, 'test', model, loss_function)
-			
+			dev_acc, dev_loss, dev_auc = self.evaluate(epoch, dev_loader, 'dev', model, loss_function)
+			test_acc, test_loss, test_auc = self.evaluate(epoch, test_loader, 'test', model, loss_function)
+			self.logger.info(f"Epoch {epoch} dev_auc: {dev_auc:.5f}  test_auc: {test_auc:.5f}")
+
 			if self.args.is_regression and not self.early_stop.step(dev_loss, test_loss, epoch):		
 				break
 			elif not self.args.is_regression and not self.early_stop.step(dev_acc, test_acc, epoch):
@@ -119,10 +123,10 @@ class GraphPredictionTask(BaseTask):
 				if self.args.is_regression and self.args.metric == "mae":
 					loss = th.sqrt(loss)
 				self.update_epoch_stats(loss, scores, sample['label'].cuda(), is_regression=self.args.is_regression)
-			accuracy, loss = self.report_epoch_stats()
+			accuracy, loss, roc_auc = self.report_epoch_stats()
 		if self.args.is_regression and self.args.metric == "rmse":
 			loss = np.sqrt(loss)
-		return accuracy, loss
+		return accuracy, loss, roc_auc
 
 	def load_data(self):
 		if self.args.task == 'synthetic':

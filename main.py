@@ -43,12 +43,17 @@ def parse_default_args():
                                                      'proteins',
                                                      'reddit',
                                                      'collab',
+                                                     'ecd'
                                                      ])
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
     parser.add_argument('--seed', type=int, default=int(time.time()))
+    parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # for distributed training
+    parser.add_argument("--device_id", type=int, default=0)
+    parser.add_argument("--distributed_rank", type=int, default=0)
     parser.add_argument('--world_size', type=int)
-    parser.add_argument("--local_rank", type=int)
+    parser.add_argument("--local_rank", type=int, default=0)
+    parser.add_argument("--distributed", action='store_true', help="Enable distributed training via torchrun/launch")
     parser.add_argument("--distributed_method", default='multi_gpu', choices=['multi_gpu', 'slurm'])
     args, _ = parser.parse_known_args()
     # model-specific params
@@ -94,13 +99,17 @@ def parse_default_args():
         CollabEuclideanParams.add_params(parser)
     elif args.task == 'collab' and args.select_manifold != 'euclidean':
         CollabHyperbolicParams.add_params(parser)
+    elif args.task == 'ecd' and args.select_manifold == 'euclidean':
+        ENVEuclideanParams.add_params(parser)
+    elif args.task == 'ecd' and args.select_manifold != 'euclidean':
+        ENVHyperbolicParams.add_params(parser)
     args = parser.parse_args()
     set_up_fold(args)
     add_embed_size(args)
     if args.task != 'node_classification':
-        if args.distributed_method == 'slurm':
+        if args.distributed and args.distributed_method == 'slurm':
             set_up_distributed_training_slurm(args)
-        elif args.distributed_method == 'multi_gpu':
+        elif args.distributed and args.distributed_method == 'multi_gpu':
             set_up_distributed_training_multi_gpu(args)
     return args
 
@@ -127,7 +136,7 @@ if __name__ == '__main__':
         gnn_task = GraphSeriesPredictionTask(args, logger, rgnn, manifold)
     elif args.task == 'node_classification':
         gnn_task = NodeClassificationTask(args, logger, rgnn, manifold)
-    elif args.task in {'qm8', 'qm9', 'zinc', 'dd', 'enzymes', 'proteins', 'reddit', 'collab', 'synthetic'}:
+    elif args.task in {'qm8', 'qm9', 'zinc', 'dd', 'enzymes', 'proteins', 'reddit', 'collab', 'synthetic', 'ecd'}:
         gnn_task = GraphPredictionTask(args, logger, rgnn, manifold)
     else:
         raise Exception("Unknown task")

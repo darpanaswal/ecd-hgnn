@@ -10,7 +10,7 @@ import pickle as pkl
 import networkx as nx
 import scipy.sparse as sp
 from scipy.sparse import save_npz, load_npz
-from scipy.sparse.linalg.eigen.arpack import eigsh
+from scipy.sparse.linalg import eigsh
 import sys
 from torch.utils.data import Dataset, DataLoader
 from utils import *
