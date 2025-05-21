@@ -20,21 +20,54 @@ from task.GraphPrediction import GraphPrediction
 import torch.distributed as dist
 
 def collate_fn(batch):
-	max_neighbor_num = -1
-	for data in batch:
-		for row in data['adj_mat']:
-			max_neighbor_num = max(max_neighbor_num, len(row))
+    """
+    Pads every graph in <batch> to the same number of nodes and the same
+    number of neighbours per node, returns a single dictionary whose
+    tensors have a leading batch dimension.
+    """
+    # ---------------------------------------------------------------
+    # first pass – obtain the largest (#nodes , #neighbours) in batch
+    # ---------------------------------------------------------------
+    max_node_num, max_nei_num = 0, 0
+    for data in batch:
+        max_node_num = max(max_node_num, len(data['adj_mat']))          # #nodes
+        for row in data['adj_mat']:                                     # neighbours/row
+            max_nei_num = max(max_nei_num, len(row))
 
-	for data in batch:
-		# pad the adjacency list
-		data['adj_mat'] = pad_sequence(data['adj_mat'], maxlen=max_neighbor_num)
-		data['weight'] = pad_sequence(data['weight'], maxlen=max_neighbor_num)
+    # ---------------------------------------------------------------
+    # second pass – pad *every* field to (max_node_num, max_nei_num)
+    # ---------------------------------------------------------------
+    new_batch = []
+    for data in batch:
+        cur_node_num = len(data['adj_mat'])
+        pad_node   = max_node_num - cur_node_num
 
-		data['node'] = np.array(data['node']).astype(np.float32)
-		data['adj_mat'] = np.array(data['adj_mat']).astype(np.int32)
-		data['weight'] = np.array(data['weight']).astype(np.float32)
-		data['label'] = np.array(data['label'])
-	return default_collate(batch)
+        # (1) node feature matrix  ------------------
+        node = np.zeros((max_node_num, data['node'].shape[1]), dtype=np.float32)
+        node[:cur_node_num] = data['node']
+
+        # (2) adjacency & weights -------------------
+        adj   = np.zeros((max_node_num, max_nei_num), dtype=np.int32)
+        wght  = np.zeros((max_node_num, max_nei_num), dtype=np.float32)
+        for i, (nei_row, w_row) in enumerate(zip(data['adj_mat'], data['weight'])):
+            adj[i, :len(nei_row)]  = nei_row
+            wght[i, :len(w_row)]   = w_row
+
+        # (3) store a mask = real #nodes ------------
+        mask = cur_node_num                                        # scalar
+
+        new_batch.append({
+            'node'    : node,
+            'adj_mat' : adj,
+            'weight'  : wght,
+            'mask'    : mask,
+            'label'   : data['label']
+        })
+    # let default_collate stack the list into tensors of shape
+    #    node     -> (B , max_node , feat_dim)
+    #    adj_mat  -> (B , max_node , max_nei)
+    #    ...
+    return default_collate(new_batch)
 
 class GraphPredictionTask(BaseTask):
 
@@ -48,18 +81,25 @@ class GraphPredictionTask(BaseTask):
 		self.manifold = manifold
 
 	def forward(self, model, sample, loss_function):
-		mask = sample['mask'].int() if 'mask' in sample else th.Tensor([sample['adj_mat'].size(1)]).cuda()
-		scores = model(
-					   sample['node'].cuda().float(),
-			           sample['adj_mat'].cuda().long(),
-			           sample['weight'].cuda().float(),
-			           mask)
-		if self.args.is_regression:
-			loss = loss_function(scores.view(-1) * self.args.std[self.args.prop_idx] + self.args.mean[self.args.prop_idx], 
-						     th.Tensor([sample['label'].view(-1)[self.args.prop_idx]]).float().cuda())
-		else:
-			loss = loss_function(scores, th.Tensor([sample['label'].view(-1)[self.args.prop_idx]]).long().cuda())
-		return scores, loss
+        # mask : (B,) – number of real nodes per graph
+        mask = sample['mask'].cuda()
+
+        scores = model(sample['node'].cuda().float(),
+                       sample['adj_mat'].cuda().long(),
+                       sample['weight'].cuda().float(),
+                       mask)                                # (B,C) or (B,1)
+
+        if self.args.is_regression:
+            target = sample['label'][:,self.args.prop_idx].float().cuda()
+            # de-normalise inside the loss if necessary
+            scores = scores.view(-1) * self.args.std[self.args.prop_idx] \
+                             + self.args.mean[self.args.prop_idx]
+            loss   = loss_function(scores, target)
+        else:                                   # classification
+            target = sample['label'][:,self.args.prop_idx].long().cuda()
+            loss   = loss_function(scores, target)
+
+        return scores, loss
 
 	def run_gnn(self):
 		train_loader, dev_loader, test_loader = self.load_data()

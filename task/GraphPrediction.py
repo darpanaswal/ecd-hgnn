@@ -42,22 +42,35 @@ class GraphPrediction(nn.Module):
 		nn_init(self.output_linear, self.args.proj_init)
 		self.args.eucl_vars.append(self.output_linear)			
 
-	def forward(self, node, adj, weight, mask):
-		"""
-		Args:
-			adj: the neighbor ids of each node [1, node_num, max_neighbor]
-			weight: the weight of each neighbor [1, node_num, max_neighbor]
-			features: [1, node_num, input_dim]
-		"""
-		assert adj.size(0) == 1
-		node, adj, weight = node.squeeze(0), adj.squeeze(0), weight.squeeze(0)
-		node_num, max_neighbor = adj.size(0), adj.size(1)
-		mask = (th.arange(1, node_num + 1) <= mask.item()).view(-1, 1).float().cuda() # [node_num, 1]
+	...
+    # ---- NEW helper ------------------------------------------------
+    def _forward_one_graph(self, node, adj, weight, num_real_nodes):
+        """
+        Processes **one** graph (= one item in the batch).
+        """
+        node_num, _ = adj.size()
+        mask = (th.arange(node_num, device=node.device) \
+                    < num_real_nodes).float().unsqueeze(1)          # (node,1)
 
-		if self.args.embed_manifold == 'hyperbolic':
-			node_repr = self.manifold.log_map_zero(self.embedding(node)) * mask
-		elif self.args.embed_manifold == 'euclidean':		
-			node_repr = self.embedding(node) * mask if not self.args.remove_embed else (node * mask) 
-		node_repr = self.rgnn(node_repr, adj, weight, mask) # [node_num, embed_size]
-		graph_repr, _ = self.distance(node_repr, mask)
-		return self.output_linear(graph_repr)
+        if self.args.embed_manifold == 'hyperbolic':
+            node         = self.manifold.log_map_zero(self.embedding(node))
+        else:   # euclidean
+            node         = self.embedding(node) if not self.args.remove_embed else node
+        node             = node * mask                      # zero-out paddings
+
+        node_repr        = self.rgnn(node, adj, weight, mask)       # (node, d)
+        graph_repr, _    = self.distance(node_repr, mask)
+        return self.output_linear(graph_repr)                        # (1,C) or (1)
+
+    # ---- modify the old forward -----------------------------------
+    def forward(self, node, adj, weight, mask):
+        """
+        All tensors come with a leading batch dimension (B, ...).
+        <mask> is a vector of length B holding #real_nodes in every graph.
+        """
+        B = node.size(0)
+        outs = [ self._forward_one_graph(node[i],
+                                         adj[i],
+                                         weight[i],
+                                         mask[i]) for i in range(B) ]
+        return th.cat(outs, dim=0)          # (B , C)   or (B , 1)

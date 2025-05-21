@@ -131,6 +131,7 @@ class BaseTask(object):
         % (self.early_stop.best_dev_score, self.early_stop.best_test_score))
 
     def load_dataset(self, dataset_class, collate_fn, distributed=True):
+      bs = getattr(self.args, 'batch_size', 1)          # <-- new
       train_dataset = dataset_class(self.args, self.logger, split='train')
       dev_dataset = dataset_class(self.args, self.logger, split='dev')
       test_dataset = dataset_class(self.args, self.logger, split='test')
@@ -142,12 +143,15 @@ class BaseTask(object):
         test_sampler = DistributedSampler(test_dataset, num_replicas=world_size, rank=distributed_rank)
       else:
         train_sampler, dev_sampler, test_sampler = None, None, None
-      train_loader = DataLoader(train_dataset, batch_size=1, collate_fn=collate_fn,
-                                          num_workers=0, sampler=train_sampler)
-      dev_loader = DataLoader(dev_dataset, batch_size=1, collate_fn=collate_fn,
-                                          num_workers=0, sampler=dev_sampler)
-      test_loader = DataLoader(test_dataset, batch_size=1, collate_fn=collate_fn,
-                                          num_workers=0, sampler=test_sampler)
+      train_loader = DataLoader(train_dataset, batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=train_sampler)
+      dev_loader   = DataLoader(dev_dataset,   batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=dev_sampler)
+      test_loader  = DataLoader(test_dataset,  batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=test_sampler)
       self.logger.info("train data size: %d" % len(train_dataset))
       self.logger.info("dev data size: %d" % len(dev_dataset))
       self.logger.info("test data size: %d" % len(test_dataset))
