@@ -49,6 +49,7 @@ def parse_default_args():
     parser.add_argument('--seed', type=int, default=int(time.time()))
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # for distributed training
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument("--device_id", type=int, default=0)
     parser.add_argument("--distributed_rank", type=int, default=0)
     parser.add_argument('--world_size', type=int)
