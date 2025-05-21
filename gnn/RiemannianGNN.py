@@ -179,6 +179,7 @@ class RiemannianGNN(nn.Module):
         weight    : list[ (B,N,K) ]
         mask      : (B , N , 1)
         """
+        B, N, _ = node_repr.shape
         adj_list, weight = self.split_input(adj_list, weight)
         for step in range(self.args.gnn_layer):
             if step > 0:                         #   (B,N,E)  ─►  (B*N , E)
