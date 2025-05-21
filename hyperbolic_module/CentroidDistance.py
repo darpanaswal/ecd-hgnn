@@ -11,31 +11,31 @@ import torch.nn.functional as F
 from utils import *
 
 class CentroidDistance(nn.Module):
-	"""
-	Implement a model that calculates the pairwise distances between node representations
-	and centroids
-	"""
-	def __init__(self, args, logger, manifold):
-		super(CentroidDistance, self).__init__()
-		self.args = args
-		self.logger = logger
-		self.manifold = manifold
+    """
+    Implement a model that calculates the pairwise distances between node representations
+    and centroids
+    """
+    def __init__(self, args, logger, manifold):
+        super(CentroidDistance, self).__init__()
+        self.args = args
+        self.logger = logger
+        self.manifold = manifold
 
-		# centroid embedding
-		self.centroid_embedding = nn.Embedding(
-			args.num_centroid, args.embed_size,
-			sparse=False,
-			scale_grad_by_freq=False,
-		)
-		if args.embed_manifold == 'hyperbolic':
-			args.manifold.init_embed(self.centroid_embedding)
-			args.hyp_vars.append(self.centroid_embedding)
-		elif args.embed_manifold == 'euclidean':
-			nn_init(self.centroid_embedding, self.args.proj_init)
-			if hasattr(args, 'eucl_vars'):
-				args.eucl_vars.append(self.centroid_embedding)
+        # centroid embedding
+        self.centroid_embedding = nn.Embedding(
+            args.num_centroid, args.embed_size,
+            sparse=False,
+            scale_grad_by_freq=False,
+        )
+        if args.embed_manifold == 'hyperbolic':
+            args.manifold.init_embed(self.centroid_embedding)
+            args.hyp_vars.append(self.centroid_embedding)
+        elif args.embed_manifold == 'euclidean':
+            nn_init(self.centroid_embedding, self.args.proj_init)
+            if hasattr(args, 'eucl_vars'):
+                args.eucl_vars.append(self.centroid_embedding)
 
-	def forward(self, node_repr, mask):
+    def forward(self, node_repr, mask):
         """
         node_repr : (B , N , E)
         mask      : (B , N , 1)
