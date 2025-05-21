@@ -60,7 +60,7 @@ class CentroidDistance(nn.Module):
         cent = cent.expand(B, N, -1, -1).reshape(-1, E)           # (B*N*C,E)
 
         # ------------- distances -------------------------------------------
-        dist = self.manifold.distance(node_expand, cent_expand)      # (B*N*C)
+        dist = self.manifold.distance(node_expand, cent)      # (B*N*C)
         dist = dist.view(B, N, C) * mask          #  <-- KEEP dim-2 (B,N,1)
                                                 #      broadcasts over C
         # average-pool over the real nodes

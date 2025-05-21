@@ -121,7 +121,7 @@ class GraphPredictionTask(BaseTask):
             for i, sample in enumerate(train_loader):
                 model.zero_grad()
                 scores, loss, target = self.forward(model, sample, loss_function)
-                loss.backward(retain_graph=True)
+                loss.backward(retain_graph=False)
 
                 if self.args.grad_clip > 0.0:
                     th.nn.utils.clip_grad_norm_(model.parameters(), self.args.grad_clip)
