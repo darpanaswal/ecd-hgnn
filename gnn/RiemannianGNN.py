@@ -86,15 +86,18 @@ class RiemannianGNN(nn.Module):
         return layer_weight
 
     def apply_activation(self, node_repr):
-        """
-        apply non-linearity for different manifolds
-        """
+        B, N, E = node_repr.shape
+        flat = node_repr.view(-1, E)
+
         if self.args.select_manifold in {"poincare", "euclidean"}:
-            return self.activation(node_repr)
+            flat = self.activation(flat)
         elif self.args.select_manifold == "lorentz":
-            return self.manifold.from_poincare_to_lorentz(
-                self.activation(self.manifold.from_lorentz_to_poincare(node_repr))
-            )
+            flat = self.manifold.from_poincare_to_lorentz(
+                    self.activation(
+                        self.manifold.from_lorentz_to_poincare(flat)
+                    ))
+
+        return flat.view(B, N, E)
 
     def split_graph_by_negative_edge(self, adj_mat, weight):
         """
@@ -178,11 +181,16 @@ class RiemannianGNN(nn.Module):
         """
         adj_list, weight = self.split_input(adj_list, weight)
         for step in range(self.args.gnn_layer):
-            if step > 0:                                        # re-enter tangent
-                node_repr = self.manifold.log_map_zero(node_repr) * mask
+            if step > 0:                         #   (B,N,E)  ─►  (B*N , E)
+                flat = node_repr.view(-1, self.args.embed_size)
+                flat = self.manifold.log_map_zero(flat)
+                node_repr = flat.view(B, N, -1) * mask        # back to (B,N,E)
             comb = self.get_combined_msg(step, node_repr,
                                          adj_list, weight, mask)
-            comb = self.dropout(comb) * mask
-            node_repr = self.manifold.exp_map_zero(comb) * mask
+            comb = self.dropout(comb) * mask      # (B,N,E)
+
+            flat = comb.view(-1, self.args.embed_size)
+            flat = self.manifold.exp_map_zero(flat)
+            node_repr = flat.view(B, N, -1) * mask
             node_repr = self.apply_activation(node_repr) * mask
-        return node_repr
+            return node_repr
