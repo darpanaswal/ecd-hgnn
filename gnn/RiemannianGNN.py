@@ -21,6 +21,23 @@ class RiemannianGNN(nn.Module):
 		self.activation = get_activation(self.args)
 		self.dropout = nn.Dropout(self.args.dropout)
 
+	# ------------ helper ---------------------------------------------------
+    @staticmethod
+    def _index_select_Nd(source, index):
+        """
+        A batched version of torch.index_select for three-dim tensors.
+        source : (B , N   , D)
+        index  : (B , N*K)       –- flattened neighbours
+        returns: (B , N*K , D)
+        """
+        B, N, D = source.shape
+        src_flat = source.reshape(B*N, D)           # (B*N , D)
+        offset   = (th.arange(B, device=source.device) * N) \
+                     .unsqueeze(1)                  # (B , 1)
+        index    = index + offset                   # broadcasting
+        return src_flat.index_select(0, index.view(-1)) \
+                       .view(B, -1, D)              # (B , N*K , D)
+
 	def create_params(self):
 		"""
 		create the GNN params for a specific msg type
@@ -124,54 +141,48 @@ class RiemannianGNN(nn.Module):
 			raise Exception('Not implemented')
 
 	def aggregate_msg(self, node_repr, adj_mat, weight, layer_weight, mask):
-		"""
-		message passing for a specific message type.
-		"""
-		node_num, max_neighbor = adj_mat.size(0), adj_mat.size(1)
-		msg = th.mm(node_repr, layer_weight) * mask
-		# select out the neighbors of each node
-		neighbors = th.index_select(msg, 0, adj_mat.view(-1)) # [node_num * max_neighbor, embed_size]
-		neighbors = neighbors.view(node_num, max_neighbor, -1)
-		# weighted sum of the neighbors' representations
-		neighbors = weight.unsqueeze(2) * neighbors # [node_num, max_neighbor, embed_size]
-		combined_msg = th.sum(neighbors, dim=1)  # [node_num, embed_size]
-		return combined_msg
+        """
+        node_repr : (B , N , E)
+        adj_mat   : (B , N , K)
+        weight    : (B , N , K)
+        mask      : (B , N , 1)
+        """
+        B, N, K = adj_mat.shape
+        msg = th.matmul(node_repr, layer_weight) * mask                 # (B,N,E)
 
-	def get_combined_msg(self, step, node_repr, adj_mat, weight, mask):
-		"""
-		perform message passing in the tangent space of x'
-		"""
-		# use the first layer only if tying weights
-		gnn_layer = 0 if self.args.tie_weight else step
-		combined_msg = None
-		for relation in range(0, self.type_of_msg):
-			layer_weight = self.retrieve_params(getattr(self, "msg_%d_weight" % relation), gnn_layer)
-			aggregated_msg = self.aggregate_msg(node_repr,
-												adj_mat[relation],
-												weight[relation],
-												layer_weight, mask)
-			combined_msg = aggregated_msg if combined_msg is None else (combined_msg + aggregated_msg)
-		return combined_msg
+        neigh = adj_mat.view(B, -1)                                     # (B,N*K)
+        neigh = self._index_select_Nd(msg, neigh)                       # (B,N*K,E)
+        neigh = neigh.view(B, N, K, -1)                                 # (B,N,K,E)
+
+        neigh = neigh * weight.unsqueeze(-1)                            # weight
+        return neigh.sum(2)                                             # (B,N,E)
+
+	def get_combined_msg(self, step, node_repr, adj_list, weight, mask):
+        combined = None
+        gnn_layer = 0 if self.args.tie_weight else step
+        for rel in range(self.type_of_msg):
+            layer_W = self.retrieve_params(getattr(self, f"msg_{rel}_weight"),
+                                           gnn_layer)
+            agg_msg = self.aggregate_msg(node_repr,
+                                         adj_list[rel], weight[rel],
+                                         layer_W, mask)
+            combined = agg_msg if combined is None else combined + agg_msg
+        return combined
 
 	def forward(self, node_repr, adj_list, weight, mask):
-		"""
-		Args:
-			node_repr: [node_num, embed_size]
-					   node_repr is in Euclidean space.
-					   If node_repr is in hyperbolic space, invoke log_map_zero first.
-			adj_list: [node_num, max_neighbor] adjacency list
-			weight:  [node_num, max_neighbor]  weights of the adjacency list
-			mask:    [node_num, 1] 1 denote real node, 0 padded node
-		Return:
-			[node_num, embed_size] in hyperbolic space
-		"""
-		# split the adjacency list and weights based on edge types
-		adj_list, weight = self.split_input(adj_list, weight)
-		# gnn layers
-		for step in range(self.args.gnn_layer):
-			node_repr = self.manifold.log_map_zero(node_repr) * mask if step > 0 else node_repr * mask
-			combined_msg = self.get_combined_msg(step, node_repr, adj_list, weight, mask)
-			combined_msg = self.dropout(combined_msg) * mask
-			node_repr = self.manifold.exp_map_zero(combined_msg) * mask
-			node_repr = self.apply_activation(node_repr) * mask
-		return node_repr
+        """
+        node_repr : (B , N , E)
+        adj_list  : list[ (B,N,K) ] – one per relation
+        weight    : list[ (B,N,K) ]
+        mask      : (B , N , 1)
+        """
+        adj_list, weight = self.split_input(adj_list, weight)
+        for step in range(self.args.gnn_layer):
+            if step > 0:                                        # re-enter tangent
+                node_repr = self.manifold.log_map_zero(node_repr) * mask
+            comb = self.get_combined_msg(step, node_repr,
+                                         adj_list, weight, mask)
+            comb = self.dropout(comb) * mask
+            node_repr = self.manifold.exp_map_zero(comb) * mask
+            node_repr = self.apply_activation(node_repr) * mask
+        return node_repr

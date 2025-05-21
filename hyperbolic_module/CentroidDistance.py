@@ -36,34 +36,32 @@ class CentroidDistance(nn.Module):
 				args.eucl_vars.append(self.centroid_embedding)
 
 	def forward(self, node_repr, mask):
-		"""
-		Args:
-			node_repr: [node_num, embed_size]
-			mask: [node_num, 1] 1 denote real node, 0 padded node
-		return:
-			graph_centroid_dist: [1, num_centroid]
-			node_centroid_dist: [1, node_num, num_centroid]
-		"""
-		node_num = node_repr.size(0)
+        """
+        node_repr : (B , N , E)
+        mask      : (B , N , 1)
+        returns
+            graph_centroid_dist : (B , C)      – C = num_centroid
+            node_centroid_dist  : (B , N , C)
+        """
+        B, N, E = node_repr.shape
+        C = self.args.num_centroid
+        device = node_repr.device
 
-		# broadcast and reshape node_repr to [node_num * num_centroid, embed_size]
-		node_repr =  node_repr.unsqueeze(1).expand(
-												-1,
-												self.args.num_centroid,
-												-1).contiguous().view(-1, self.args.embed_size)
+        # ------------- broadcast / reshape ---------------------------------
+        node_expand = node_repr.unsqueeze(2)                      # (B,N,1,E)
+        node_expand = node_expand.expand(-1, -1, C, -1)           # (B,N,C,E)
+        node_expand = node_expand.reshape(-1, E)                  # (B*N*C,E)
 
-		# broadcast and reshape centroid embeddings to [node_num * num_centroid, embed_size]
-		if self.args.embed_manifold == 'hyperbolic':
-			centroid_repr = self.centroid_embedding(th.arange(self.args.num_centroid).cuda())
-		else:
-			centroid_repr = self.manifold.exp_map_zero(self.centroid_embedding(th.arange(self.args.num_centroid).cuda()))
-		centroid_repr = centroid_repr.unsqueeze(0).expand(
-												node_num,
-												-1,
-												-1).contiguous().view(-1, self.args.embed_size)
-		# get distance
-		node_centroid_dist = self.manifold.distance(node_repr, centroid_repr)
-		node_centroid_dist = node_centroid_dist.view(1, node_num, self.args.num_centroid) * mask
-		# average pooling over nodes
-		graph_centroid_dist = th.sum(node_centroid_dist, dim=1) / th.sum(mask)
-		return graph_centroid_dist, node_centroid_dist
+        if self.args.embed_manifold == 'hyperbolic':
+            cent = self.centroid_embedding.weight                 # (C,E)
+        else:
+            cent = self.manifold.exp_map_zero(self.centroid_embedding.weight)
+        cent = cent.unsqueeze(0).unsqueeze(0)                     # (1,1,C,E)
+        cent = cent.expand(B, N, -1, -1).reshape(-1, E)           # (B*N*C,E)
+
+        # ------------- distances -------------------------------------------
+        dist = self.manifold.distance(node_expand, cent)          # (B*N*C)
+        dist = dist.view(B, N, C) * mask.squeeze(2)               # (B,N,C)
+
+        graph_dist = dist.sum(1) / mask.sum(1)                    # (B,C)
+        return graph_dist, dist

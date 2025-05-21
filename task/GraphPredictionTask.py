@@ -60,7 +60,7 @@ def collate_fn(batch):
             'node'    : node_pad,
             'adj_mat' : adj_pad,
             'weight'  : wgt_pad,
-            'mask'    : np.array(cur_node_num, dtype=np.int32),  # #real nodes
+            'mask'    : np.array([cur_node_num], dtype=np.int32),  # <-- shape (1,)
             'label'   : np.asarray(data['label'])
         })
 
@@ -79,12 +79,11 @@ class GraphPredictionTask(BaseTask):
         self.manifold = manifold
 
     def forward(self, model, sample, loss_function):
-        mask   = sample['mask'].cuda()
-
+        mask = sample['mask'].cuda()         # shape (B,1)
         scores = model(sample['node'].cuda().float(),
                     sample['adj_mat'].cuda().long(),
                     sample['weight'].cuda().float(),
-                    mask)                         # (B , C) or (B , 1)
+                    mask)
 
         if self.args.is_regression:
             target = sample['label'][:, self.args.prop_idx].float().cuda()

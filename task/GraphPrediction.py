@@ -42,35 +42,33 @@ class GraphPrediction(nn.Module):
         nn_init(self.output_linear, self.args.proj_init)
         self.args.eucl_vars.append(self.output_linear)			
 
-    ...
-    # ---- NEW helper ------------------------------------------------
-    def _forward_one_graph(self, node, adj, weight, num_real_nodes):
-        """
-        Processes **one** graph (= one item in the batch).
-        """
-        node_num, _ = adj.size()
-        mask = (th.arange(node_num, device=node.device) \
-                    < num_real_nodes).float().unsqueeze(1)          # (node,1)
-
-        if self.args.embed_manifold == 'hyperbolic':
-            node         = self.manifold.log_map_zero(self.embedding(node))
-        else:   # euclidean
-            node         = self.embedding(node) if not self.args.remove_embed else node
-        node             = node * mask                      # zero-out paddings
-
-        node_repr        = self.rgnn(node, adj, weight, mask)       # (node, d)
-        graph_repr, _    = self.distance(node_repr, mask)
-        return self.output_linear(graph_repr)                        # (1,C) or (1)
-
-    # ---- modify the old forward -----------------------------------
     def forward(self, node, adj, weight, mask):
         """
-        All tensors come with a leading batch dimension (B, ...).
-        <mask> is a vector of length B holding #real_nodes in every graph.
+        node   : (B , N , F)
+        adj    : (B , N , K)
+        weight : (B , N , K)
+        mask   : (B , 1)   –- number of *real* nodes in every graph
         """
-        B = node.size(0)
-        outs = [ self._forward_one_graph(node[i],
-                                         adj[i],
-                                         weight[i],
-                                         mask[i]) for i in range(B) ]
-        return th.cat(outs, dim=0)          # (B , C)   or (B , 1)
+        B, N, _ = node.shape                                   # ---- shapes
+        device  = node.device
+        # -------------------------------------------------------------------
+        # build a node mask (B , N , 1)   1 = real node , 0 = padding
+        # -------------------------------------------------------------------
+        arange_N   = th.arange(N, device=device).unsqueeze(0)          # (1,N)
+        node_mask  = (arange_N < mask).float().unsqueeze(2)            # (B,N,1)
+
+        # ---------------- Embedding ----------------------------------------
+        if not self.args.remove_embed:
+            node = self.embedding(node)                                # (B,N,E)
+        if self.args.embed_manifold == 'hyperbolic':
+            node = self.manifold.log_map_zero(node)
+        node = node * node_mask                                         # zero pads
+
+        # ---------------- RGNN ---------------------------------------------
+        node_repr = self.rgnn(node, adj, weight, node_mask)             # (B,N,E)
+
+        # ---------------- centroid distances -------------------------------
+        graph_repr, _ = self.distance(node_repr, node_mask)             # (B,C')
+
+        # ---------------- final linear -------------------------------------
+        return self.output_linear(graph_repr)                           # (B,C)
