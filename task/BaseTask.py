@@ -127,8 +127,20 @@ class BaseTask(object):
         return accuracy, loss, roc_auc
 
     def report_best(self):
-      self.logger.info("best dev %.6f, best test %.6f" 
-        % (self.early_stop.best_dev_score, self.early_stop.best_test_score))
+        self.logger.info(
+            (
+                "BEST at epoch %d: dev %.6f, test %.6f, train_acc %.6f, train_auc %s, dev_auc %s, test_auc %s"
+            )
+            % (
+                self.early_stop.best_epoch,
+                self.early_stop.best_dev_score,
+                self.early_stop.best_test_score,
+                self.early_stop.best_train_acc,
+                str(self.early_stop.best_train_auc),
+                str(self.early_stop.best_dev_auc),
+                str(self.early_stop.best_test_auc),
+            )
+        )
 
     def load_dataset(self, dataset_class, collate_fn, distributed=True):
       bs = getattr(self.args, 'batch_size', 1)          # <-- new

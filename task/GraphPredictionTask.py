@@ -136,13 +136,23 @@ class GraphPredictionTask(BaseTask):
                 if i % 400 ==0:
                     self.report_epoch_stats()
             
+            train_acc, train_loss, train_auc = self.report_epoch_stats()
             dev_acc, dev_loss, dev_auc = self.evaluate(epoch, dev_loader, 'dev', model, loss_function)
             test_acc, test_loss, test_auc = self.evaluate(epoch, test_loader, 'test', model, loss_function)
             self.logger.info(f"Epoch {epoch} dev_auc: {dev_auc:.5f}  test_auc: {test_auc:.5f}")
 
-            if self.args.is_regression and not self.early_stop.step(dev_loss, test_loss, epoch):		
-                break
-            elif not self.args.is_regression and not self.early_stop.step(dev_acc, test_acc, epoch):
+            # Pass extra info
+            if self.args.is_regression:
+                stop = not self.early_stop.step(
+                    dev_loss, test_loss, epoch,
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                )
+            else:
+                stop = not self.early_stop.step(
+                    dev_acc, test_acc, epoch,
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                )
+            if stop:
                 break
 
             lr_scheduler.step()
