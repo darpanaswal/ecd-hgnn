@@ -79,25 +79,24 @@ class GraphPredictionTask(BaseTask):
         self.manifold = manifold
 
     def forward(self, model, sample, loss_function):
-        # mask : (B,) – number of real nodes per graph
-        mask = sample['mask'].cuda()
+        mask   = sample['mask'].cuda()
 
         scores = model(sample['node'].cuda().float(),
-                       sample['adj_mat'].cuda().long(),
-                       sample['weight'].cuda().float(),
-                       mask)                                # (B,C) or (B,1)
+                    sample['adj_mat'].cuda().long(),
+                    sample['weight'].cuda().float(),
+                    mask)                         # (B , C) or (B , 1)
 
         if self.args.is_regression:
-            target = sample['label'][:,self.args.prop_idx].float().cuda()
-            # de-normalise inside the loss if necessary
-            scores = scores.view(-1) * self.args.std[self.args.prop_idx] \
-                             + self.args.mean[self.args.prop_idx]
-            loss   = loss_function(scores, target)
-        else:                                   # classification
-            target = sample['label'][:,self.args.prop_idx].long().cuda()
+            target = sample['label'][:, self.args.prop_idx].float().cuda()
+            scores_renorm = (scores.view(-1) * self.args.std[self.args.prop_idx]
+                                        + self.args.mean[self.args.prop_idx])
+            loss = loss_function(scores_renorm, target)
+        else:
+            target = sample['label'][:, self.args.prop_idx].long().cuda()
             loss   = loss_function(scores, target)
 
-        return scores, loss
+        # -------------- return target so the caller can use it ----------
+        return scores, loss, target
 
     def run_gnn(self):
         train_loader, dev_loader, test_loader = self.load_data()
@@ -122,7 +121,7 @@ class GraphPredictionTask(BaseTask):
             model.train()
             for i, sample in enumerate(train_loader):
                 model.zero_grad()
-                scores, loss = self.forward(model, sample, loss_function)
+                scores, loss, target = self.forward(model, sample, loss_function)
                 loss.backward(retain_graph=True)
 
                 if self.args.grad_clip > 0.0:
@@ -133,7 +132,8 @@ class GraphPredictionTask(BaseTask):
                     hyperbolic_optimizer.step()
                 if self.args.is_regression and self.args.metric == "mae":
                     loss = th.sqrt(loss)
-                self.update_epoch_stats(loss, scores, sample['label'].cuda(), is_regression=self.args.is_regression)			
+                self.update_epoch_stats(loss, scores, target,
+                        is_regression=self.args.is_regression)
                 if i % 400 ==0:
                     self.report_epoch_stats()
             
@@ -157,10 +157,11 @@ class GraphPredictionTask(BaseTask):
         with th.no_grad():
             self.reset_epoch_stats(epoch, prefix)
             for i, sample in enumerate(data_loader):
-                scores, loss = self.forward(model, sample, loss_function)
+                scores, loss, target = self.forward(model, sample, loss_function)
                 if self.args.is_regression and self.args.metric == "mae":
                     loss = th.sqrt(loss)
-                self.update_epoch_stats(loss, scores, sample['label'].cuda(), is_regression=self.args.is_regression)
+                self.update_epoch_stats(loss, scores, target,
+                        is_regression=self.args.is_regression)
             accuracy, loss, roc_auc = self.report_epoch_stats()
         if self.args.is_regression and self.args.metric == "rmse":
             loss = np.sqrt(loss)
