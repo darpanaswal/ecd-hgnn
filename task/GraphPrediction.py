@@ -13,36 +13,36 @@ from hyperbolic_module.CentroidDistance import CentroidDistance
 
 class GraphPrediction(nn.Module):
 
-	def __init__(self, args, logger, rgnn, manifold):
-		super(GraphPrediction, self).__init__()
-		self.args = args
-		self.logger = logger
-		self.manifold = manifold
+    def __init__(self, args, logger, rgnn, manifold):
+        super(GraphPrediction, self).__init__()
+        self.args = args
+        self.logger = logger
+        self.manifold = manifold
 
-		if not self.args.remove_embed:
-			self.embedding = nn.Linear(
-		            args.num_feature, args.embed_size,
-		            bias=False
-		    )
-			if self.args.embed_manifold == 'hyperbolic':
-				self.manifold.init_embed(self.embedding)
-				self.args.hyp_vars.append(self.embedding)
-			elif self.args.embed_manifold == 'euclidean':
-				nn_init(self.embedding, self.args.proj_init)
-				self.args.eucl_vars.append(self.embedding)
+        if not self.args.remove_embed:
+            self.embedding = nn.Linear(
+                    args.num_feature, args.embed_size,
+                    bias=False
+            )
+            if self.args.embed_manifold == 'hyperbolic':
+                self.manifold.init_embed(self.embedding)
+                self.args.hyp_vars.append(self.embedding)
+            elif self.args.embed_manifold == 'euclidean':
+                nn_init(self.embedding, self.args.proj_init)
+                self.args.eucl_vars.append(self.embedding)
 
-		self.distance = CentroidDistance(args, logger, manifold)
+        self.distance = CentroidDistance(args, logger, manifold)
 
-		self.rgnn = rgnn
+        self.rgnn = rgnn
 
-		if self.args.is_regression:
-			self.output_linear = nn.Linear(self.args.num_centroid, 1)
-		else:
-			self.output_linear = nn.Linear(self.args.num_centroid, self.args.num_class)
-		nn_init(self.output_linear, self.args.proj_init)
-		self.args.eucl_vars.append(self.output_linear)			
+        if self.args.is_regression:
+            self.output_linear = nn.Linear(self.args.num_centroid, 1)
+        else:
+            self.output_linear = nn.Linear(self.args.num_centroid, self.args.num_class)
+        nn_init(self.output_linear, self.args.proj_init)
+        self.args.eucl_vars.append(self.output_linear)			
 
-	...
+    ...
     # ---- NEW helper ------------------------------------------------
     def _forward_one_graph(self, node, adj, weight, num_real_nodes):
         """
