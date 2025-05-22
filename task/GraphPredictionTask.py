@@ -99,144 +99,85 @@ class GraphPredictionTask(BaseTask):
 
     def run_gnn(self):
         train_loader, dev_loader, test_loader = self.load_data()
-        task_model = GraphPrediction(self.args, self.logger, self.rgnn, self.manifold).cuda()
 
-        # Corrected DistributedDataParallel setup
-        if getattr(self.args, "world_size", 1) > 1 and th.cuda.is_available() and th.distributed.is_initialized():
+        task_model = GraphPrediction(self.args, self.logger, self.rgnn, self.manifold).cuda()
+        if getattr(self.args, 'world_suze', 1) > 1:
             model = nn.parallel.DistributedDataParallel(task_model,
-                                                        device_ids=[self.args.device_id], # typically self.args.local_rank
-                                                        output_device=self.args.device_id) # typically self.args.local_rank
+                                                    device_ids=[self.args.device_id],
+                                                    output_device=self.args.device_id)
         else:
             model = task_model
-
         if self.args.is_regression:
             loss_function = nn.MSELoss(reduction='sum')
         else:
             loss_function = nn.CrossEntropyLoss(reduction='sum')
-        
+
         optimizer, lr_scheduler, hyperbolic_optimizer, hyperbolic_lr_scheduler = \
-                                set_up_optimizer_scheduler(self.hyperbolic, self.args, model) # Ensure set_up_optimizer_scheduler is defined/imported
+                                set_up_optimizer_scheduler(self.hyperbolic, self.args, model)
         
         for epoch in range(self.args.max_epochs):
             self.reset_epoch_stats(epoch, 'train')
             model.train()
-            if train_loader.sampler is not None and isinstance(train_loader.sampler, DistributedSampler): # Required for DDP
-                train_loader.sampler.set_epoch(epoch)
-
             for i, sample in enumerate(train_loader):
                 model.zero_grad()
-                if hyperbolic_optimizer: # zero grad for hyperbolic optimizer if it exists
-                    hyperbolic_optimizer.zero_grad()
-
                 scores, loss, target = self.forward(model, sample, loss_function)
                 loss.backward(retain_graph=False)
-                
+
                 if self.args.grad_clip > 0.0:
                     th.nn.utils.clip_grad_norm_(model.parameters(), self.args.grad_clip)
-                
+
                 optimizer.step()
-                if self.hyperbolic and hyperbolic_optimizer and len(self.args.hyp_vars) != 0 :
+                if self.hyperbolic and len(self.args.hyp_vars) != 0:
                     hyperbolic_optimizer.step()
-                
-                current_loss_val = loss.item() # Use .item() for scalar loss
                 if self.args.is_regression and self.args.metric == "mae":
-                    # MAE is usually L1 loss. If MSELoss is used, sqrt gives RMSE.
-                    # This seems to be calculating MAE from an MSE sum loss, which is unusual.
-                    # If loss_function is MSELoss(reduction='sum'), loss is sum of squared errors.
-                    # To get MAE, you'd sum absolute errors. sqrt(sum_sq_err) is not MAE.
-                    # If you intend RMSE, then current_loss_val should be current_loss_val / num_items_in_batch before sqrt.
-                    # For simplicity, I'm assuming this custom logic is intended.
-                     current_loss_val = th.sqrt(loss).item()
-
-
-                self.update_epoch_stats(th.tensor(current_loss_val), scores, target, # Pass loss as a tensor scalar
+                    loss = th.sqrt(loss)
+                self.update_epoch_stats(loss, scores, target,
                         is_regression=self.args.is_regression)
-                
-                if i % 400 == 0: # Log progress within an epoch
-                    # report_epoch_stats will be called with partial epoch data here.
-                    # Consider if this intermediate reporting is for rank 0 only or all.
-                    # The current report_epoch_stats handles distributed aggregation.
-                    self.report_epoch_stats() 
+                if i % 400 ==0:
+                    self.report_epoch_stats()
             
-            # End of epoch reporting
-            train_acc, train_loss, train_auc, train_precision, train_recall, train_f1 = self.report_epoch_stats()
-            
-            # Evaluation
-            dev_acc, dev_loss, dev_auc, dev_precision, dev_recall, dev_f1 = self.evaluate(
-                epoch, dev_loader, 'dev', model, loss_function
-            )
-            test_acc, test_loss, test_auc, test_precision, test_recall, test_f1 = self.evaluate(
-                epoch, test_loader, 'test', model, loss_function
-            )
+            train_acc, train_loss, train_auc, train_prec, train_rec, train_f1 = self.report_epoch_stats()
+            dev_acc, dev_loss, dev_auc, dev_prec, dev_rec, dev_f1 = self.evaluate(epoch, dev_loader, 'dev', model, loss_function)
+            test_acc, test_loss, test_auc, test_prec, test_rec, test_f1 = self.evaluate(epoch, test_loader, 'test', model, loss_function)
+            self.logger.info(f"Epoch {epoch} dev_auc: {dev_auc:.5f}  test_auc: {test_auc:.5f}  dev_f1: {dev_f1:.5f}  test_f1: {test_f1:.5f}")
 
-            self.logger.info(
-                f"Epoch {epoch}: Dev AUC: {dev_auc:.5f}, Dev F1: {dev_f1:.5f} | Test AUC: {test_auc:.5f}, Test F1: {test_f1:.5f}"
-            )
-
-            # Early stopping step
+            # Pass extra info
             if self.args.is_regression:
-                current_eval_metric = dev_loss # or another relevant metric for regression
+                stop = not self.early_stop.step(
+                    dev_loss, test_loss, epoch,
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                )
             else:
-                current_eval_metric = dev_acc # or dev_f1 or dev_auc depending on primary metric
-
-            stop = not self.early_stop.step(
-                cur_dev_score=current_eval_metric, # Main metric for early stopping decision
-                cur_test_score=test_acc if not self.args.is_regression else test_loss, # Corresponding test score
-                epoch=epoch,
-                train_acc=train_acc, train_auc=train_auc,
-                dev_auc=dev_auc, test_auc=test_auc,
-                train_precision=train_precision, train_recall=train_recall, train_f1=train_f1,
-                dev_precision=dev_precision, dev_recall=dev_recall, dev_f1=dev_f1,
-                test_precision=test_precision, test_recall=test_recall, test_f1=test_f1
-            )
-            
+                stop = not self.early_stop.step(
+                    dev_acc, test_acc, epoch,
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                )
             if stop:
-                self.logger.info(f"Early stopping triggered at epoch {epoch}.")
                 break
-            
+
             lr_scheduler.step()
-            if self.hyperbolic and hyperbolic_lr_scheduler and len(self.args.hyp_vars) != 0:
+            if self.hyperbolic and len(self.args.hyp_vars) != 0:
                 hyperbolic_lr_scheduler.step()
-            
-            if th.cuda.is_available():
-                 th.cuda.empty_cache()
-        
-        self.report_best() # Report best scores found during training
+            th.cuda.empty_cache()
+        self.report_best()
 
     def evaluate(self, epoch, data_loader, prefix, model, loss_function):
         model.eval()
-        if data_loader.sampler is not None and isinstance(data_loader.sampler, DistributedSampler): # For DDP
-            data_loader.sampler.set_epoch(epoch) # Not strictly needed for eval but good practice
-
         with th.no_grad():
             self.reset_epoch_stats(epoch, prefix)
             for i, sample in enumerate(data_loader):
                 scores, loss, target = self.forward(model, sample, loss_function)
-                
-                current_loss_val = loss.item()
                 if self.args.is_regression and self.args.metric == "mae":
-                    current_loss_val = th.sqrt(loss).item() # Same logic as in training loop
-
-                self.update_epoch_stats(th.tensor(current_loss_val), scores, target,
+                    loss = th.sqrt(loss)
+                self.update_epoch_stats(loss, scores, target,
                         is_regression=self.args.is_regression)
-            
-            # report_epoch_stats now returns 6 values
-            accuracy, loss_val, roc_auc, precision, recall, f1 = self.report_epoch_stats()
-
-        # This loss is per-batch average loss from report_epoch_stats
-        # If metric is rmse, and loss was sum of squares, then sqrt(loss_val) is appropriate if loss_val is MSE
+            accuracy, loss, roc_auc, precision, recall, f1 = self.report_epoch_stats()
         if self.args.is_regression and self.args.metric == "rmse":
-            # Ensure loss_val is mean squared error before taking sqrt
-            # The current report_epoch_stats returns loss = sum_loss / num_total, which is effectively MSE if loss_function was sum of squares.
-            loss_val = np.sqrt(loss_val) if loss_val is not None and not np.isnan(loss_val) else float('nan')
-            
-        return accuracy, loss_val, roc_auc, precision, recall, f1
+            loss = np.sqrt(loss)
+        return accuracy, loss, roc_auc, precision, recall, f1
 
     def load_data(self):
-        # Determine if running in distributed mode
-        is_distributed = getattr(self.args, "world_size", 1) > 1 and th.cuda.is_available() and th.distributed.is_initialized()
-
         if self.args.task == 'synthetic':
-            return self.load_dataset(SyntheticDataset, collate_fn, distributed=is_distributed)
+            return self.load_dataset(SyntheticDataset, collate_fn)
         else:
-            return self.load_dataset(GraphDataset, collate_fn, distributed=is_distributed)	
+            return self.load_dataset(GraphDataset, collate_fn)	
