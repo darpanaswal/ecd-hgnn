@@ -20,52 +20,54 @@ from task.GraphPrediction import GraphPrediction
 import torch.distributed as dist
 
 def collate_fn(batch):
-"""
-Pads every graph in <batch> to the same (#nodes , #neighbours)
-and stacks them into one mini-batch.
-"""
-# ---------------------------------------------------------------
-# figure-out maxima inside the mini-batch
-# ---------------------------------------------------------------
-max_node_num, max_nei_num = 0, 0
-for data in batch:
-max_node_num = max(max_node_num, len(data['adj_mat']))     # #nodes
-for row in data['adj_mat']:
-max_nei_num = max(max_nei_num, len(row))               # #neighbours / node
+    """
+    Pads every graph in <batch> to the same (#nodes , #neighbours)
+    and stacks them into one mini-batch.
+    """
+    # ---------------------------------------------------------------
+    # figure-out maxima inside the mini-batch
+    # ---------------------------------------------------------------
+    max_node_num, max_nei_num = 0, 0
+    for data in batch:
+    max_node_num = max(max_node_num, len(data['adj_mat']))     # #nodes
+    for row in data['adj_mat']:
+    max_nei_num = max(max_nei_num, len(row))               # #neighbours / node
 
-# ---------------------------------------------------------------
-# pad every field
-# ---------------------------------------------------------------
-padded_batch = []
-for data in batch:
-    # make sure the 'node' field is a NumPy array so that we can
-    # query its shape
-    node_arr = np.asarray(data['node'], dtype=np.float32)       # (n_nodes, feat_dim)
-    cur_node_num, feat_dim = node_arr.shape
+    # ---------------------------------------------------------------
+    # pad every field
+    # ---------------------------------------------------------------
+    padded_batch = []
+    for data in batch:
+        # make sure the 'node' field is a NumPy array so that we can
+        # query its shape
+        node_arr = np.asarray(data['node'], dtype=np.float32)       # (n_nodes, feat_dim)
+        cur_node_num, feat_dim = node_arr.shape
 
-    # ---------- node features ----------------------------------
-    node_pad = np.zeros((max_node_num, feat_dim), dtype=np.float32)
-    node_pad[:cur_node_num] = node_arr
+        # ---------- node features ----------------------------------
+        node_pad = np.zeros((max_node_num, feat_dim), dtype=np.float32)
+        node_pad[:cur_node_num] = node_arr
 
-    # ---------- adjacency & edge weights -----------------------
-    adj_pad  = np.zeros((max_node_num, max_nei_num), dtype=np.int32)
-    wgt_pad  = np.zeros((max_node_num, max_nei_num), dtype=np.float32)
+        # ---------- adjacency & edge weights -----------------------
+        adj_pad  = np.zeros((max_node_num, max_nei_num), dtype=np.int32)
+        wgt_pad  = np.zeros((max_node_num, max_nei_num), dtype=np.float32)
 
-    for i, (nei_row, w_row) in enumerate(zip(data['adj_mat'], data['weight'])):
-        adj_pad[i, :len(nei_row)] = nei_row
-        wgt_pad[i, :len(w_row)]   = w_row
+        for i, (nei_row, w_row) in enumerate(zip(data['adj_mat'], data['weight'])):
+            adj_pad[i, :len(nei_row)] = nei_row
+            wgt_pad[i, :len(w_row)]   = w_row
 
-    # ---------- construct the padded sample --------------------
-    padded_batch.append({
-        'node'    : node_pad,
-        'adj_mat' : adj_pad,
-        'weight'  : wgt_pad,
-        'mask'    : np.array([cur_node_num], dtype=np.int32),  # <-- shape (1,)
-        'label'   : np.asarray(data['label'])
-    })
+        # ---------- construct the padded sample --------------------
+        padded_batch.append({
+            'node'    : node_pad,
+            'adj_mat' : adj_pad,
+            'weight'  : wgt_pad,
+            'mask'    : np.array([cur_node_num], dtype=np.int32),  # <-- shape (1,)
+            'label'   : np.asarray(data['label'])
+        })
 
-# let PyTorch stack everything and convert to tensors
-return default_collate(padded_batch)
+    # let PyTorch stack everything and convert to tensors
+    return default_collate(padded_batch)
+
+
 class GraphPredictionTask(BaseTask):
 
 def __init__(self, args, logger, rgnn, manifold):
