@@ -18,7 +18,6 @@ class BaseTask(object):
     """
     A base class that supports loading datasets, early stop and reporting statistics
     """
-    class BaseTask(object):
     def __init__(self, args, logger, criterion='max', early_stop_metric="f1"):
         self.args = args
         self.logger = logger
