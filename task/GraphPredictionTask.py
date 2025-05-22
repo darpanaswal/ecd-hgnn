@@ -8,7 +8,7 @@
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import *
+from utils import * 
 from task.BaseTask import BaseTask
 from dataset.GraphDataset import GraphDataset
 from dataset.SyntheticDataset import SyntheticDataset
@@ -66,7 +66,6 @@ def collate_fn(batch):
 
     # let PyTorch stack everything and convert to tensors
     return default_collate(padded_batch)
-
 
 class GraphPredictionTask(BaseTask):
 
@@ -181,4 +180,4 @@ class GraphPredictionTask(BaseTask):
         if self.args.task == 'synthetic':
             return self.load_dataset(SyntheticDataset, collate_fn)
         else:
-            return self.load_dataset(GraphDataset, collate_fn)	
+            return self.load_dataset(GraphDataset, collate_fn)

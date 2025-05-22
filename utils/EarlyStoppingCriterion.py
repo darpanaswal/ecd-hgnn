@@ -8,9 +8,9 @@
 class EarlyStoppingCriterion(object):
     """
     Arguments:
-    patience (int): The maximum number of epochs with no improvement before early stopping should take place
-    mode (str, can only be 'max' or 'min'): To take the maximum or minimum of the score for optimization
-    min_delta (float, optional): Minimum change in the score to qualify as an improvement (default: 0.0)
+        patience (int): The maximum number of epochs with no improvement before early stopping should take place
+        mode (str, can only be 'max' or 'min'): To take the maximum or minimum of the score for optimization
+        min_delta (float, optional): Minimum change in the score to qualify as an improvement (default: 0.0)
     """
 
     def __init__(self, patience, mode, min_delta=0.0):
