@@ -8,11 +8,10 @@
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import * 
+from utils import *
 from hyperbolic_module.CentroidDistance import CentroidDistance
 
 class GraphPrediction(nn.Module):
-
     def __init__(self, args, logger, rgnn, manifold):
         super(GraphPrediction, self).__init__()
         self.args = args
