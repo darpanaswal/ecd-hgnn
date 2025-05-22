@@ -266,12 +266,12 @@ class BaseTask(object):
         
         train_sampler, dev_sampler, test_sampler = None, None, None # Initialize
         if distributed and getattr(self.args, "world_size", 1) > 1 : # Check if distributed training is active
-        world_size = self.args.world_size
-        distributed_rank = self.args.distributed_rank
-        train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=True) # shuffle=True for training
-        # For dev/test, shuffling is not strictly necessary and can be off, ensure all GPUs see all data or a consistent part
-        dev_sampler = DistributedSampler(dev_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=False)
-        test_sampler = DistributedSampler(test_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=False)
+            world_size = self.args.world_size
+            distributed_rank = self.args.distributed_rank
+            train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=True) # shuffle=True for training
+            # For dev/test, shuffling is not strictly necessary and can be off, ensure all GPUs see all data or a consistent part
+            dev_sampler = DistributedSampler(dev_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=False)
+            test_sampler = DistributedSampler(test_dataset, num_replicas=world_size, rank=distributed_rank, shuffle=False)
         
         # Determine if shuffle is needed for non-distributed training
         shuffle_train = train_sampler is None # Shuffle if not using DistributedSampler
