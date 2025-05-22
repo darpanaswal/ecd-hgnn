@@ -190,16 +190,16 @@ class BaseTask(object):
             test_sampler = DistributedSampler(test_dataset, num_replicas=world_size, rank=distributed_rank)
         else:
             train_sampler, dev_sampler, test_sampler = None, None, None
-            train_loader = DataLoader(train_dataset, batch_size=bs,
-                                    collate_fn=collate_fn, num_workers=0,
-                                    sampler=train_sampler)
-            dev_loader   = DataLoader(dev_dataset,   batch_size=bs,
-                                    collate_fn=collate_fn, num_workers=0,
-                                    sampler=dev_sampler)
-            test_loader  = DataLoader(test_dataset,  batch_size=bs,
-                                    collate_fn=collate_fn, num_workers=0,
-                                    sampler=test_sampler)
-            self.logger.info("train data size: %d" % len(train_dataset))
-            self.logger.info("dev data size: %d" % len(dev_dataset))
-            self.logger.info("test data size: %d" % len(test_dataset))
+        train_loader = DataLoader(train_dataset, batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=train_sampler)
+        dev_loader   = DataLoader(dev_dataset,   batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=dev_sampler)
+        test_loader  = DataLoader(test_dataset,  batch_size=bs,
+                                collate_fn=collate_fn, num_workers=0,
+                                sampler=test_sampler)
+        self.logger.info("train data size: %d" % len(train_dataset))
+        self.logger.info("dev data size: %d" % len(dev_dataset))
+        self.logger.info("test data size: %d" % len(test_dataset))
         return train_loader, dev_loader, test_loader
