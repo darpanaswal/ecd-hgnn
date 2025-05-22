@@ -29,9 +29,9 @@ def collate_fn(batch):
     # ---------------------------------------------------------------
     max_node_num, max_nei_num = 0, 0
     for data in batch:
-    max_node_num = max(max_node_num, len(data['adj_mat']))     # #nodes
-    for row in data['adj_mat']:
-    max_nei_num = max(max_nei_num, len(row))               # #neighbours / node
+        max_node_num = max(max_node_num, len(data['adj_mat']))     # #nodes
+        for row in data['adj_mat']:
+            max_nei_num = max(max_nei_num, len(row))               # #neighbours / node
 
     # ---------------------------------------------------------------
     # pad every field
