@@ -149,7 +149,7 @@ class GraphPredictionTask(BaseTask):
                 )
             else:
                 stop = not self.early_stop.step(
-                    dev_acc, test_acc, epoch,
+                    dev_f1, test_f1, epoch,   # <--- use dev_f1 and test_f1!
                     train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
                 )
             if stop:

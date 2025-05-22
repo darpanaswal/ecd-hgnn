@@ -18,10 +18,12 @@ class BaseTask(object):
     """
     A base class that supports loading datasets, early stop and reporting statistics
     """
-    def __init__(self, args, logger, criterion='max'):
+    class BaseTask(object):
+    def __init__(self, args, logger, criterion='max', early_stop_metric="f1"):
         self.args = args
         self.logger = logger
-        self.early_stop = EarlyStoppingCriterion(self.args.patience, criterion)
+        self.early_stop = EarlyStoppingCriterion(self.args.patience, criterion, metric_name=early_stop_metric)
+
 
     def reset_epoch_stats(self, epoch, prefix):
         self.epoch_stats = {
