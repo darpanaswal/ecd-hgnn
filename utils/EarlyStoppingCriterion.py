@@ -38,10 +38,16 @@ class EarlyStoppingCriterion(object):
         self.best_test_rec = None
         self.best_dev_f1 = None
         self.best_test_f1 = None
+        self.best_train_prec = None
+        self.best_train_rec = None
+        self.best_train_f1 = None
 
     def step(self, cur_dev_score, cur_test_score, epoch,
         train_acc=None, train_auc=None, dev_auc=None, test_auc=None,
-        dev_prec=None, test_prec=None, dev_rec=None, test_rec=None, dev_f1=None, test_f1=None):
+        dev_prec=None, test_prec=None,
+        dev_rec=None, test_rec=None,
+        dev_f1=None, test_f1=None,
+        train_prec=None, train_rec=None, train_f1=None):
 
         """
         Checks if training should be continued given the current score.
@@ -67,6 +73,9 @@ class EarlyStoppingCriterion(object):
             self.best_test_rec = test_rec
             self.best_dev_f1 = dev_f1
             self.best_test_f1 = test_f1
+            self.best_train_prec = train_prec
+            self.best_train_rec = train_rec
+            self.best_train_f1 = train_f1
             return True
         else:
             if self.mode == 'max':
@@ -90,6 +99,9 @@ class EarlyStoppingCriterion(object):
                 self.best_test_rec = test_rec
                 self.best_dev_f1 = dev_f1
                 self.best_test_f1 = test_f1
+                self.best_train_prec = train_prec
+                self.best_train_rec = train_rec
+                self.best_train_f1 = train_f1
             else:
                 self._count += 1
             return self._count <= self.patience

@@ -166,9 +166,9 @@ class BaseTask(object):
             (
             "BEST at epoch %d: dev %.6f, test %.6f, train_acc %.6f,"
             " train_auc %s, dev_auc %s, test_auc %s,"
-            " dev_prec %.6f, test_prec %.6f,"
-            " dev_rec %.6f, test_rec %.6f,"
-            " dev_f1 %.6f, test_f1 %.6f")%
+            " train_prec %.6f, dev_prec %.6f, test_prec %.6f,"
+            " train_rec %.6f, dev_rec %.6f, test_rec %.6f,"
+            " train_f1 %.6f, dev_f1 %.6f, test_f1 %.6f")%
             (
             self.early_stop.best_epoch,
             self.early_stop.best_dev_score,
@@ -177,10 +177,13 @@ class BaseTask(object):
             str(self.early_stop.best_train_auc),
             str(self.early_stop.best_dev_auc),
             str(self.early_stop.best_test_auc),
+            float(self.early_stop.best_train_prec) if self.early_stop.best_train_prec is not None else float('nan'),
             float(self.early_stop.best_dev_prec) if self.early_stop.best_dev_prec is not None else float('nan'),
             float(self.early_stop.best_test_prec) if self.early_stop.best_test_prec is not None else float('nan'),
+            float(self.early_stop.best_train_rec) if self.early_stop.best_train_rec is not None else float('nan'),
             float(self.early_stop.best_dev_rec) if self.early_stop.best_dev_rec is not None else float('nan'),
             float(self.early_stop.best_test_rec) if self.early_stop.best_test_rec is not None else float('nan'),
+            float(self.early_stop.best_train_f1) if self.early_stop.best_train_f1 is not None else float('nan'),
             float(self.early_stop.best_dev_f1) if self.early_stop.best_dev_f1 is not None else float('nan'),
             float(self.early_stop.best_test_f1) if self.early_stop.best_test_f1 is not None else float('nan'),
             )

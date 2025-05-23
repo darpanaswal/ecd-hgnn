@@ -139,7 +139,11 @@ class GraphPredictionTask(BaseTask):
             train_acc, train_loss, train_auc, train_prec, train_rec, train_f1 = self.report_epoch_stats()
             dev_acc, dev_loss, dev_auc, dev_prec, dev_rec, dev_f1 = self.evaluate(epoch, dev_loader, 'dev', model, loss_function)
             test_acc, test_loss, test_auc, test_prec, test_rec, test_f1 = self.evaluate(epoch, test_loader, 'test', model, loss_function)
-            self.logger.info(f"Epoch {epoch} dev_auc: {dev_auc:.5f}  test_auc: {test_auc:.5f}  dev_f1: {dev_f1:.5f}  test_f1: {test_f1:.5f}")
+            self.logger.info(
+                f"Epoch {epoch} "
+                f"dev_auc: {dev_auc:.5f} dev_prec: {dev_prec:.5f} dev_rec: {dev_rec:.5f} dev_f1: {dev_f1:.5f}  "
+                f"test_auc: {test_auc:.5f} test_prec: {test_prec:.5f} test_rec: {test_rec:.5f} test_f1: {test_f1:.5f}"
+            )
 
             # Pass extra info
             if self.args.is_regression:
@@ -149,14 +153,16 @@ class GraphPredictionTask(BaseTask):
                     dev_prec=dev_prec, test_prec=test_prec,
                     dev_rec=dev_rec, test_rec=test_rec,
                     dev_f1=dev_f1, test_f1=test_f1,
+                    train_prec=train_prec, train_rec=train_rec, train_f1=train_f1,  # <- add these!
                 )
             else:
                 stop = not self.early_stop.step(
-                    dev_acc, test_acc, epoch,
+                    dev_loss, test_loss, epoch,
                     train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc,
                     dev_prec=dev_prec, test_prec=test_prec,
                     dev_rec=dev_rec, test_rec=test_rec,
                     dev_f1=dev_f1, test_f1=test_f1,
+                    train_prec=train_prec, train_rec=train_rec, train_f1=train_f1,  # <- add these!
                 )
             if stop:
                 break
