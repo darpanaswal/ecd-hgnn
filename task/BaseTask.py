@@ -164,16 +164,25 @@ class BaseTask(object):
     def report_best(self):
         self.logger.info(
             (
-                "BEST at epoch %d: dev %.6f, test %.6f, train_acc %.6f, train_auc %s, dev_auc %s, test_auc %s"
-            )
-            % (
-                self.early_stop.best_epoch,
-                self.early_stop.best_dev_score,
-                self.early_stop.best_test_score,
-                self.early_stop.best_train_acc,
-                str(self.early_stop.best_train_auc),
-                str(self.early_stop.best_dev_auc),
-                str(self.early_stop.best_test_auc),
+            "BEST at epoch %d: dev %.6f, test %.6f, train_acc %.6f,"
+            " train_auc %s, dev_auc %s, test_auc %s,"
+            " dev_prec %.6f, test_prec %.6f,"
+            " dev_rec %.6f, test_rec %.6f,"
+            " dev_f1 %.6f, test_f1 %.6f")%
+            (
+            self.early_stop.best_epoch,
+            self.early_stop.best_dev_score,
+            self.early_stop.best_test_score,
+            self.early_stop.best_train_acc,
+            str(self.early_stop.best_train_auc),
+            str(self.early_stop.best_dev_auc),
+            str(self.early_stop.best_test_auc),
+            float(self.early_stop.best_dev_prec) if self.early_stop.best_dev_prec is not None else float('nan'),
+            float(self.early_stop.best_test_prec) if self.early_stop.best_test_prec is not None else float('nan'),
+            float(self.early_stop.best_dev_rec) if self.early_stop.best_dev_rec is not None else float('nan'),
+            float(self.early_stop.best_test_rec) if self.early_stop.best_test_rec is not None else float('nan'),
+            float(self.early_stop.best_dev_f1) if self.early_stop.best_dev_f1 is not None else float('nan'),
+            float(self.early_stop.best_test_f1) if self.early_stop.best_test_f1 is not None else float('nan'),
             )
         )
 

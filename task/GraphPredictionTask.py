@@ -145,12 +145,18 @@ class GraphPredictionTask(BaseTask):
             if self.args.is_regression:
                 stop = not self.early_stop.step(
                     dev_loss, test_loss, epoch,
-                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc,
+                    dev_prec=dev_prec, test_prec=test_prec,
+                    dev_rec=dev_rec, test_rec=test_rec,
+                    dev_f1=dev_f1, test_f1=test_f1,
                 )
             else:
                 stop = not self.early_stop.step(
                     dev_acc, test_acc, epoch,
-                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc
+                    train_acc=train_acc, train_auc=train_auc, dev_auc=dev_auc, test_auc=test_auc,
+                    dev_prec=dev_prec, test_prec=test_prec,
+                    dev_rec=dev_rec, test_rec=test_rec,
+                    dev_f1=dev_f1, test_f1=test_f1,
                 )
             if stop:
                 break
