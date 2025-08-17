@@ -164,28 +164,31 @@ class BaseTask(object):
     def report_best(self):
         self.logger.info(
             (
-            "BEST at epoch %d: dev %.6f, test %.6f, train_acc %.6f,"
-            " train_auc %s, dev_auc %s, test_auc %s,"
-            " train_prec %.6f, dev_prec %.6f, test_prec %.6f,"
-            " train_rec %.6f, dev_rec %.6f, test_rec %.6f,"
-            " train_f1 %.6f, dev_f1 %.6f, test_f1 %.6f")%
+            "BEST at epoch %d:\n"
+            "  Train -> prec %.1f, rec %.1f, F1 %.1f, acc %.1f, auc %s\n"
+            "  Dev   -> prec %.1f, rec %.1f, F1 %.1f, acc %.1f, auc %s\n"
+            "  Test  -> prec %.1f, rec %.1f, F1 %.1f, acc %.1f, auc %s"
+            ) %
             (
             self.early_stop.best_epoch,
-            self.early_stop.best_dev_score,
-            self.early_stop.best_test_score,
-            self.early_stop.best_train_acc,
-            str(self.early_stop.best_train_auc),
-            str(self.early_stop.best_dev_auc),
-            str(self.early_stop.best_test_auc),
-            float(self.early_stop.best_train_prec) if self.early_stop.best_train_prec is not None else float('nan'),
-            float(self.early_stop.best_dev_prec) if self.early_stop.best_dev_prec is not None else float('nan'),
-            float(self.early_stop.best_test_prec) if self.early_stop.best_test_prec is not None else float('nan'),
-            float(self.early_stop.best_train_rec) if self.early_stop.best_train_rec is not None else float('nan'),
-            float(self.early_stop.best_dev_rec) if self.early_stop.best_dev_rec is not None else float('nan'),
-            float(self.early_stop.best_test_rec) if self.early_stop.best_test_rec is not None else float('nan'),
-            float(self.early_stop.best_train_f1) if self.early_stop.best_train_f1 is not None else float('nan'),
-            float(self.early_stop.best_dev_f1) if self.early_stop.best_dev_f1 is not None else float('nan'),
-            float(self.early_stop.best_test_f1) if self.early_stop.best_test_f1 is not None else float('nan'),
+
+            float(self.early_stop.best_train_prec) * 100 if self.early_stop.best_train_prec is not None else float('nan'),
+            float(self.early_stop.best_train_rec) * 100 if self.early_stop.best_train_rec is not None else float('nan'),
+            float(self.early_stop.best_train_f1) * 100 if self.early_stop.best_train_f1 is not None else float('nan'),
+            float(self.early_stop.best_train_acc) * 100 if self.early_stop.best_train_acc is not None else float('nan'),
+            str(round(self.early_stop.best_train_auc, 3)) if self.early_stop.best_train_auc is not None else 'N/A',
+
+            float(self.early_stop.best_dev_prec) * 100 if self.early_stop.best_dev_prec is not None else float('nan'),
+            float(self.early_stop.best_dev_rec) * 100 if self.early_stop.best_dev_rec is not None else float('nan'),
+            float(self.early_stop.best_dev_f1) * 100 if self.early_stop.best_dev_f1 is not None else float('nan'),
+            float(self.early_stop.best_dev_acc) * 100 if self.early_stop.best_dev_acc is not None else float('nan'),
+            str(round(self.early_stop.best_dev_auc, 3)) if self.early_stop.best_dev_auc is not None else 'N/A',
+
+            float(self.early_stop.best_test_prec) * 100 if self.early_stop.best_test_prec is not None else float('nan'),
+            float(self.early_stop.best_test_rec) * 100 if self.early_stop.best_test_rec is not None else float('nan'),
+            float(self.early_stop.best_test_f1) * 100 if self.early_stop.best_test_f1 is not None else float('nan'),
+            float(self.early_stop.best_test_acc) * 100 if self.early_stop.best_test_acc is not None else float('nan'),
+            str(round(self.early_stop.best_test_auc, 3)) if self.early_stop.best_test_auc is not None else 'N/A',
             )
         )
 
@@ -194,7 +197,7 @@ class BaseTask(object):
         train_dataset = dataset_class(self.args, self.logger, split='train')
         dev_dataset = dataset_class(self.args, self.logger, split='dev')
         test_dataset = dataset_class(self.args, self.logger, split='test')
-        if distributed:
+        if distributed and dist.is_available() and dist.is_initialized():
             world_size = getattr(self.args, "world_size", 1)
             distributed_rank = getattr(self.args, "distributed_rank", 0)
             train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=distributed_rank)

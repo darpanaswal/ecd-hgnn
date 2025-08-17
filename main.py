@@ -48,6 +48,8 @@ def parse_default_args():
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
     parser.add_argument('--seed', type=int, default=int(time.time()))
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
+    # NEW: Argument to toggle class weights
+    parser.add_argument('--use_class_weights', action='store_true', help='Use class weights for the loss function to handle imbalance')
     # for distributed training
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument("--device_id", type=int, default=0)
@@ -132,6 +134,9 @@ if __name__ == '__main__':
 
     manifold = create_manifold(args, logger)
     rgnn = RiemannianGNN(args, logger, manifold)
+
+    if not args.distributed:
+        args.world_size = 1
 
     if args.task == 'ethereum':
         gnn_task = GraphSeriesPredictionTask(args, logger, rgnn, manifold)

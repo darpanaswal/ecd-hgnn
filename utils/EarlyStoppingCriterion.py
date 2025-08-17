@@ -1,10 +1,3 @@
-#!/usr/bin/env/python
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 class EarlyStoppingCriterion(object):
     """
     Arguments:
@@ -26,8 +19,11 @@ class EarlyStoppingCriterion(object):
         self.best_test_score = None
         self.best_epoch = None
         self.is_improved = None
-        
+
         self.best_train_acc = None
+        self.best_dev_acc = None
+        self.best_test_acc = None
+
         self.best_train_auc = None
         self.best_dev_auc = None
         self.best_test_auc = None
@@ -43,30 +39,30 @@ class EarlyStoppingCriterion(object):
         self.best_train_f1 = None
 
     def step(self, cur_dev_score, cur_test_score, epoch,
-        train_acc=None, train_auc=None, dev_auc=None, test_auc=None,
-        dev_prec=None, test_prec=None,
-        dev_rec=None, test_rec=None,
-        dev_f1=None, test_f1=None,
-        train_prec=None, train_rec=None, train_f1=None):
+             train_acc=None, dev_acc=None, test_acc=None,
+             train_auc=None, dev_auc=None, test_auc=None,
+             dev_prec=None, test_prec=None,
+             dev_rec=None, test_rec=None,
+             dev_f1=None, test_f1=None,
+             train_prec=None, train_rec=None, train_f1=None):
 
         """
         Checks if training should be continued given the current score.
-
-        Arguments:
-            cur_dev_score (float): the current development score
-            cur_test_score (float): the current test score
-        Output:
-            bool: if training should be continued
         """
+
         if self.best_dev_score is None:
             self.best_dev_score = cur_dev_score
             self.best_test_score = cur_test_score
             self.best_epoch = epoch
-            # --- extra ---
+
             self.best_train_acc = train_acc
+            self.best_dev_acc = dev_acc
+            self.best_test_acc = test_acc
+
             self.best_train_auc = train_auc
             self.best_dev_auc = dev_auc
             self.best_test_auc = test_auc
+
             self.best_dev_prec = dev_prec
             self.best_test_prec = test_prec
             self.best_dev_rec = dev_rec
@@ -88,11 +84,15 @@ class EarlyStoppingCriterion(object):
                 self.best_dev_score = cur_dev_score
                 self.best_test_score = cur_test_score
                 self.best_epoch = epoch
-                # --- extra ---
+
                 self.best_train_acc = train_acc
+                self.best_dev_acc = dev_acc
+                self.best_test_acc = test_acc
+
                 self.best_train_auc = train_auc
                 self.best_dev_auc = dev_auc
                 self.best_test_auc = test_auc
+
                 self.best_dev_prec = dev_prec
                 self.best_test_prec = test_prec
                 self.best_dev_rec = dev_rec
