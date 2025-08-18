@@ -20,4 +20,4 @@ echo "Allocated GPU info:"
 nvidia-smi
 
 # Run training
-python main.py --task ecd --select_manifold euclidean --compute_roc_auc
+python main.py --task ecd --select_manifold poincare --compute_roc_auc --use_class_weights
