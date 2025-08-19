@@ -58,6 +58,10 @@ def parse_default_args():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--distributed", action='store_true', help="Enable distributed training via torchrun/launch")
     parser.add_argument("--distributed_method", default='multi_gpu', choices=['multi_gpu', 'slurm'])
+
+    # <<< POS INTEGRATION: Add argument to control POS tag usage
+    parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
+
     args, _ = parser.parse_known_args()
     # model-specific params
     if args.task == 'ethereum' and args.select_manifold == 'euclidean':
@@ -109,6 +113,13 @@ def parse_default_args():
     args = parser.parse_args()
     set_up_fold(args)
     add_embed_size(args)
+
+    # <<< POS INTEGRATION: Dynamically update the input feature dimension if using POS tags
+    if args.use_pos_tags:
+        print(f"POS tags enabled. Initial feature size: {args.num_feature}")
+        args.num_feature += args.pos_embed_dim
+        print(f"Feature size updated to: {args.num_feature} (word2vec + pos_embed)")
+
     if args.task != 'node_classification':
         if args.distributed and args.distributed_method == 'slurm':
             set_up_distributed_training_slurm(args)

@@ -39,9 +39,9 @@ def add_params(parser):
     parser.add_argument('--edge_type', type=int, default=45) 
     parser.add_argument('--tie_weight', type=str2bool, default="False") 
     parser.add_argument('--embed_manifold', type=str, default='euclidean', choices=['euclidean', 'hyperbolic'])  
-    parser.add_argument('--train_file', type=str, default='data/env_claim/env_claim_train.json')
-    parser.add_argument('--dev_file', type=str, default='data/env_claim/env_claim_val.json')
-    parser.add_argument('--test_file', type=str, default='data/env_claim/env_claim_test.json')
+    parser.add_argument('--train_file', type=str, default='data/env_claim/env_claim_train_pos.json')
+    parser.add_argument('--dev_file', type=str, default='data/env_claim/env_claim_val_pos.json')
+    parser.add_argument('--test_file', type=str, default='data/env_claim/env_claim_test_pos.json')
     parser.add_argument('--num_class', type=int, default=2)
     parser.add_argument('--num_feature', type=int, default=8822)
     parser.add_argument('--num_property', type=int, default=1)
@@ -50,3 +50,7 @@ def add_params(parser):
     parser.add_argument('--normalization', type=str2bool, default=False)
     parser.add_argument('--remove_embed', type=str2bool, default=False)
     parser.add_argument('--dist_method', type=str, default='all_gather', choices=['all_gather', 'reduce'])      
+
+    # <<< POS INTEGRATION: Add parameters for POS embeddings
+    parser.add_argument('--pos_vocab_size', type=int, default=18, help="Number of unique POS tags in the dataset.")
+    parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")

@@ -18,6 +18,17 @@ class GraphPrediction(nn.Module):
         self.args = args
         self.logger = logger
         self.manifold = manifold
+        
+
+        # <<< POS INTEGRATION: Conditionally create the POS embedding layer
+        if self.args.use_pos_tags:
+            self.pos_embedding = nn.Embedding(
+                args.pos_vocab_size, args.pos_embed_dim
+            )
+            # We can initialize it, or let it be random
+            nn_init(self.pos_embedding, self.args.proj_init)
+            self.args.eucl_vars.append(self.pos_embedding)
+
 
         if not self.args.remove_embed:
             self.embedding = nn.Linear(
@@ -42,7 +53,7 @@ class GraphPrediction(nn.Module):
         nn_init(self.output_linear, self.args.proj_init)
         self.args.eucl_vars.append(self.output_linear)			
 
-    def forward(self, node, adj, weight, mask):
+    def forward(self, node, adj, weight, mask, pos_indices=None):
         """
         node   : (B , N , F)
         adj    : (B , N , K)
@@ -56,6 +67,16 @@ class GraphPrediction(nn.Module):
         # -------------------------------------------------------------------
         arange_N   = th.arange(N, device=device).unsqueeze(0)          # (1,N)
         node_mask  = (arange_N < mask).float().unsqueeze(2)            # (B,N,1)
+
+
+        # <<< POS INTEGRATION: Augment node features with POS embeddings
+        if self.args.use_pos_tags and pos_indices is not None:
+            # Get POS embeddings from the layer
+            pos_embeds = self.pos_embedding(pos_indices) # (B, N, F_pos)
+            
+            # Concatenate with original node features
+            node = th.cat([node, pos_embeds], dim=-1) # (B, N, F_word + F_pos)
+
 
         # ---------------- Embedding ----------------------------------------
         if not self.args.remove_embed:

@@ -56,14 +56,27 @@ def collate_fn(batch):
             adj_pad[i, :len(nei_row)] = nei_row
             wgt_pad[i, :len(w_row)]   = w_row
 
+
+        # <<< POS INTEGRATION: Pad the pos_indices as well
+        pos_indices_pad = np.zeros(max_node_num, dtype=np.int64)
+        if 'pos_indices' in data:
+            pos_indices_arr = np.asarray(data['pos_indices'], dtype=np.int64)
+            pos_indices_pad[:cur_node_num] = pos_indices_arr
+
+
         # ---------- construct the padded sample --------------------
-        padded_batch.append({
+        padded_sample = {
             'node'    : node_pad,
             'adj_mat' : adj_pad,
             'weight'  : wgt_pad,
-            'mask'    : np.array([cur_node_num], dtype=np.int32),  # <-- shape (1,)
+            'mask'    : np.array([cur_node_num], dtype=np.int32),
             'label'   : np.asarray(data['label'])
-        })
+        }
+        # <<< POS INTEGRATION: Add pos_indices to the batch if they exist
+        if 'pos_indices' in data:
+            padded_sample['pos_indices'] = pos_indices_pad
+            
+        padded_batch.append(padded_sample)
 
     # let PyTorch stack everything and convert to tensors
     return default_collate(padded_batch)
@@ -78,6 +91,12 @@ class GraphPredictionTask(BaseTask):
 
     def forward(self, model, sample, loss_function):
         mask = sample['mask'].cuda()  # shape (B,1)
+
+        # <<< POS INTEGRATION: Prepare pos_indices to pass to the model
+        pos_indices = sample.get('pos_indices', None)
+        if pos_indices is not None:
+            pos_indices = pos_indices.cuda().long()
+            
         scores = model(sample['node'].cuda().float(),
                        sample['adj_mat'].cuda().long(),
                        sample['weight'].cuda().float(),

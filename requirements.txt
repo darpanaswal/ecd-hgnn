@@ -3,3 +3,5 @@ networkx
 scikit-learn
 torch
 torchvision
+datasets
+huggingface_hub
