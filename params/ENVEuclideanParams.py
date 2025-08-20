@@ -37,7 +37,7 @@ def add_params(parser):
     parser.add_argument('--dev_file', type=str, default='data/env_claim/env_claim_val_pos.json')
     parser.add_argument('--test_file', type=str, default='data/env_claim/env_claim_test_pos.json')
     parser.add_argument('--num_class', type=int, default=2)
-    parser.add_argument('--num_feature', type=int, default=8822)
+    parser.add_argument('--num_feature', type=int, default=300)
     parser.add_argument('--num_property', type=int, default=1)
     parser.add_argument('--prop_idx', type=int, default=0)
     parser.add_argument('--eucl_vars', type=list, default=[])

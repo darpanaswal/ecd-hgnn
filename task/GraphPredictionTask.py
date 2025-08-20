@@ -129,18 +129,25 @@ class GraphPredictionTask(BaseTask):
             loss_function = nn.MSELoss(reduction='sum')
         else:
             class_weights = None
-            # NEW: Conditionally calculate and apply class weights based on the new argument
             if self.args.use_class_weights:
                 self.logger.info("Class weighting enabled.")
-                train_labels = [data['label'][self.args.prop_idx] for data in train_loader.dataset]
-                class_counts = Counter(train_labels)
-                
-                num_samples = len(train_labels)
-                num_classes = len(class_counts)
-                
-                weights = [num_samples / (num_classes * class_counts[i]) for i in sorted(class_counts.keys())]
-                class_weights = th.FloatTensor(weights).cuda()
-                self.logger.info(f"Using class weights for loss: {class_weights}")
+                # <<< GRID SEARCH INTEGRATION: Prioritize manually provided weights
+                if hasattr(self.args, 'class_weight_values') and self.args.class_weight_values:
+                    weights = self.args.class_weight_values
+                    class_weights = th.FloatTensor(weights).cuda()
+                    self.logger.info(f"Using manually specified class weights: {class_weights}")
+                else:
+                    # Fallback to automatic calculation if no manual weights are given
+                    self.logger.info("Calculating class weights automatically from training data...")
+                    train_labels = [data['label'][self.args.prop_idx] for data in train_loader.dataset]
+                    class_counts = Counter(train_labels)
+                    
+                    num_samples = len(train_labels)
+                    num_classes = len(class_counts)
+                    
+                    weights = [num_samples / (num_classes * class_counts[i]) for i in sorted(class_counts.keys())]
+                    class_weights = th.FloatTensor(weights).cuda()
+                    self.logger.info(f"Automatically calculated class weights: {class_weights}")
             else:
                 self.logger.info("Class weighting disabled.")
             

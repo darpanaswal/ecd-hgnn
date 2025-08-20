@@ -24,7 +24,7 @@ def add_params(parser):
     parser.add_argument("--num_centroid", type=int, default=20)
     parser.add_argument('--gnn_layer', type=int, default=4) 
     parser.add_argument('--grad_clip', type=float, default=1.)
-    parser.add_argument('--dropout', type=float, default=0.0)
+    parser.add_argument('--dropout', type=float, default=0.25)
     parser.add_argument('--activation', type=str, default='leaky_relu', choices=['leaky_relu', 'rrelu', 'selu', 'elu'])
     parser.add_argument('--leaky_relu', type=float, default=0.5)
     parser.add_argument('--weight_decay', type=float, default=0)
@@ -43,7 +43,7 @@ def add_params(parser):
     parser.add_argument('--dev_file', type=str, default='data/env_claim/env_claim_val_pos.json')
     parser.add_argument('--test_file', type=str, default='data/env_claim/env_claim_test_pos.json')
     parser.add_argument('--num_class', type=int, default=2)
-    parser.add_argument('--num_feature', type=int, default=8822)
+    parser.add_argument('--num_feature', type=int, default=300)
     parser.add_argument('--num_property', type=int, default=1)
     parser.add_argument('--prop_idx', type=int, default=0)
     parser.add_argument('--is_regression', type=str2bool, default=False)
@@ -53,4 +53,4 @@ def add_params(parser):
 
     # <<< POS INTEGRATION: Add parameters for POS embeddings
     parser.add_argument('--pos_vocab_size', type=int, default=18, help="Number of unique POS tags in the dataset.")
-    parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")
+    parser.add_argument('--pos_embed_dim', type=int, default=64, help="Dimension for the learnable POS tag embeddings.")

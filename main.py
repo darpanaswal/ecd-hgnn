@@ -62,6 +62,11 @@ def parse_default_args():
     # <<< POS INTEGRATION: Add argument to control POS tag usage
     parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
 
+    # Custom Class Weights
+    parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
+
+
+
     args, _ = parser.parse_known_args()
     # model-specific params
     if args.task == 'ethereum' and args.select_manifold == 'euclidean':
