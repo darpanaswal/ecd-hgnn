@@ -100,7 +100,8 @@ class GraphPredictionTask(BaseTask):
         scores = model(sample['node'].cuda().float(),
                        sample['adj_mat'].cuda().long(),
                        sample['weight'].cuda().float(),
-                       mask)
+                       mask,
+                       pos_indices) # <<< POS INTEGRATION: Pass indices to model
 
         if self.args.is_regression:
             target = sample['label'][:, self.args.prop_idx].float().cuda()

@@ -46,7 +46,7 @@ def parse_default_args():
                                                      'ecd'
                                                      ])
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
-    parser.add_argument('--seed', type=int, default=int(time.time()))
+    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # NEW: Argument to toggle class weights
     parser.add_argument('--use_class_weights', action='store_true', help='Use class weights for the loss function to handle imbalance')
@@ -61,11 +61,19 @@ def parse_default_args():
 
     # <<< POS INTEGRATION: Add argument to control POS tag usage
     parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
-
+    parser.add_argument('--pos_vocab_size', type=int, default=17, help="Number of unique POS tags in the dataset.")
+    parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")
     # Custom Class Weights
     parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
 
-
+    # ==== NEW: smart edge feature controls ====
+    parser.add_argument('--smart_edge', action='store_true',
+                        help='Provide rich edge vectors alongside legacy edge types')
+    parser.add_argument('--edge_features_mode', type=str, default='hierarchical',
+                        choices=['onehot', 'hierarchical'],
+                        help='How to build smart edge vectors (when edges don’t already include edge_vec)')
+    parser.add_argument('--dep_mapping', type=str, default='mappings.json',
+                        help='Path to mappings.json (used to build vectors on-the-fly if needed)')
 
     args, _ = parser.parse_known_args()
     # model-specific params
