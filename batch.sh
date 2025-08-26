@@ -4,7 +4,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpua100
+#SBATCH --partition=gpu_test
 
 set -euo pipefail
 

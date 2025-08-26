@@ -4,7 +4,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpua100
+#SBATCH --partition=gpu_test
 
 
 # Load modules
@@ -20,6 +20,4 @@ source activate ecdgnn
 echo "Allocated GPU info:"
 nvidia-smi
 # Run training
-python main.py --task ecd --select_manifold poincare \
-    --dropout 0.3 --compute_roc_auc --smart_edge --edge_features_mode hierarchical \
-    
+python main.py --task ecd --select_manifold poincare --compute_roc_auc --edge_features_mode hierarchical

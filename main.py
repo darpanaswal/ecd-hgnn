@@ -17,6 +17,9 @@ from params import *
 import sys
 from manifold import *
 from gnn import RiemannianGNN
+import torch
+
+os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
 
 def set_up_fold(args):
     if args.task in ['dd', 'enzymes', 'proteins', 'reddit', 'collab']:
@@ -66,16 +69,20 @@ def parse_default_args():
     # Custom Class Weights
     parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
 
-    # ==== NEW: smart edge feature controls ====
-    parser.add_argument('--smart_edge', action='store_true',
-                        help='Provide rich edge vectors alongside legacy edge types')
-    parser.add_argument('--edge_features_mode', type=str, default='hierarchical',
+    # --- EDGE FEATURE LOADING ---
+    parser.add_argument('--edge_features_mode',
+                        type=str,
+                        default='onehot',
                         choices=['onehot', 'hierarchical'],
-                        help='How to build smart edge vectors (when edges don’t already include edge_vec)')
-    parser.add_argument('--dep_mapping', type=str, default='mappings.json',
-                        help='Path to mappings.json (used to build vectors on-the-fly if needed)')
+                        help="How to encode edge features: 'onehot' (default, original behavior) or 'hierarchical' (duplicate edges per active hierarchical bit).")
+    parser.add_argument('--dep_mapping',
+                        type=str,
+                        default="mappings.json",
+                        help="Path to mapping.json with dep_to_index (required if --edge_features_mode hierarchical).")
 
     args, _ = parser.parse_known_args()
+    if args.edge_features_mode == 'hierarchical' and not args.dep_mapping:
+        raise ValueError("--dep_mapping is required when --edge_features_mode hierarchical")
     # model-specific params
     if args.task == 'ethereum' and args.select_manifold == 'euclidean':
         EthereumEuclideanParams.add_params(parser)
@@ -151,6 +158,12 @@ def create_manifold(args, logger):
 if __name__ == '__main__':
     args = parse_default_args()
     set_seed(args.seed)
+
+
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
+
 
     logger = create_logger('log/%s.log' % args.name)
     logger.info("save debug info to log/%s.log" % args.name)
