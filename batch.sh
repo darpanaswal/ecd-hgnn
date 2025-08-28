@@ -4,17 +4,28 @@
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpu_test
+#SBATCH --partition=gpua100
+#SBATCH --exclude=ruche-gpu17
 
 set -euo pipefail
 
 # Usage:
 #   sbatch [--array=START-END%CONCURRENCY] slurm.sh <base|pos|classw|pos_classw> <euclidean|lorentz|poincare>
 # Examples:
-#   sbatch slurm.sh base euclidean
-#   sbatch --array=0-1%2 slurm.sh pos lorentz
-#   sbatch --array=0-1%4 slurm.sh classw poincare
-#   sbatch --array=0-5%4 slurm.sh pos_classw euclidean
+#   sbatch batch.sh base euclidean
+#   sbatch --array=0-1%2 batch.sh pos euclidean
+#   sbatch --array=0-1%4 batch.sh classw euclidean
+#   sbatch --array=0-5%4 batch.sh pos_classw euclidean
+
+#   sbatch batch.sh base lorentz
+#   sbatch --array=0-1%2 batch.sh pos lorentz
+#   sbatch --array=0-1%4 batch.sh classw lorentz
+#   sbatch --array=0-5%4 batch.sh pos_classw lorentz
+
+#   sbatch batch.sh base poincare
+#   sbatch --array=0-1%2 batch.sh pos poincare
+#   sbatch --array=0-1%4 batch.sh classw poincare
+#   sbatch --array=0-5%4 batch.sh pos_classw poincare
 
 CONFIG="${1:-}"
 SPACE="${2:-poincare}"
@@ -109,7 +120,7 @@ for (( i=START; i<END; i++ )); do
     KV["$k"]="$v"
   done
 
-  run_args=(--task ecd --select_manifold "$SPACE" --compute_roc_auc)
+  run_args=(--task ecd --select_manifold "$SPACE" --compute_roc_auc) #--edge_features_mode hierarchical)
   run_args+=(--dropout "${KV[dropout]}")
   TAG="cfg=${CONFIG} space=${SPACE} do=${KV[dropout]}"
 

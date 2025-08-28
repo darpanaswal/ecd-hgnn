@@ -6,7 +6,6 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu_test
 
-
 # Load modules
 module load anaconda3/2024.06/gcc-13.2.0
 module load cuda/12.2.1/gcc-11.2.0
@@ -20,4 +19,4 @@ source activate ecdgnn
 echo "Allocated GPU info:"
 nvidia-smi
 # Run training
-python main.py --task ecd --select_manifold poincare --compute_roc_auc --edge_features_mode hierarchical
+python main.py --task ecd --select_manifold euclidean --compute_roc_auc --dropout 0.25 --use_class_weights --class_weight_values 0.6678 1.9897

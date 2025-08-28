@@ -49,7 +49,7 @@ def parse_default_args():
                                                      'ecd'
                                                      ])
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
-    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--seed', type=int, default=1755723359)
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # NEW: Argument to toggle class weights
     parser.add_argument('--use_class_weights', action='store_true', help='Use class weights for the loss function to handle imbalance')
