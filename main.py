@@ -61,11 +61,10 @@ def parse_default_args():
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--distributed", action='store_true', help="Enable distributed training via torchrun/launch")
     parser.add_argument("--distributed_method", default='multi_gpu', choices=['multi_gpu', 'slurm'])
+    
+    # Argument to select parser for 'ecd' task
+    parser.add_argument('--parser', type=str, default='stanza', choices=['spacy', 'stanza'], help="The NLP parser used for 'ecd' task data preprocessing.")
 
-    # <<< POS INTEGRATION: Add argument to control POS tag usage
-    parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
-    parser.add_argument('--pos_vocab_size', type=int, default=17, help="Number of unique POS tags in the dataset.")
-    parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")
     # Custom Class Weights
     parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
 
@@ -77,7 +76,7 @@ def parse_default_args():
                         help="How to encode edge features: 'onehot' (default, original behavior) or 'hierarchical' (duplicate edges per active hierarchical bit).")
     parser.add_argument('--dep_mapping',
                         type=str,
-                        default="mappings.json",
+                        default="mappings_new.json",
                         help="Path to mapping.json with dep_to_index (required if --edge_features_mode hierarchical).")
 
     args, _ = parser.parse_known_args()
@@ -127,9 +126,18 @@ def parse_default_args():
     elif args.task == 'collab' and args.select_manifold != 'euclidean':
         CollabHyperbolicParams.add_params(parser)
     elif args.task == 'ecd' and args.select_manifold == 'euclidean':
-        ENVEuclideanParams.add_params(parser)
+        ENVEuclideanParams.add_params(parser, args.parser)
     elif args.task == 'ecd' and args.select_manifold != 'euclidean':
-        ENVHyperbolicParams.add_params(parser)
+        ENVHyperbolicParams.add_params(parser, args.parser)
+
+    # <<< POS INTEGRATION: Add argument to control POS tag usage
+    parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
+    pos_vocab_size_default = 17
+    if args.task == 'ecd':
+        pos_vocab_size_default = 18 if args.parser == 'spacy' else 17
+    parser.add_argument('--pos_vocab_size', type=int, default=pos_vocab_size_default, help="Number of unique POS tags in the dataset.")
+    parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")
+    
     args = parser.parse_args()
     set_up_fold(args)
     add_embed_size(args)
