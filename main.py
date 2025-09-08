@@ -49,7 +49,8 @@ def parse_default_args():
                                                      'ecd'
                                                      ])
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
-    parser.add_argument('--seed', type=int, default=1755723359)
+    # parser.add_argument('--seed', type=int, default=1755723359)
+    parser.add_argument('--seed', type=int, default=int(time.time()))
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # NEW: Argument to toggle class weights
     parser.add_argument('--use_class_weights', action='store_true', help='Use class weights for the loss function to handle imbalance')
@@ -68,20 +69,8 @@ def parse_default_args():
     # Custom Class Weights
     parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
 
-    # --- EDGE FEATURE LOADING ---
-    parser.add_argument('--edge_features_mode',
-                        type=str,
-                        default='onehot',
-                        choices=['onehot', 'hierarchical'],
-                        help="How to encode edge features: 'onehot' (default, original behavior) or 'hierarchical' (duplicate edges per active hierarchical bit).")
-    parser.add_argument('--dep_mapping',
-                        type=str,
-                        default="mappings_new.json",
-                        help="Path to mapping.json with dep_to_index (required if --edge_features_mode hierarchical).")
-
     args, _ = parser.parse_known_args()
-    if args.edge_features_mode == 'hierarchical' and not args.dep_mapping:
-        raise ValueError("--dep_mapping is required when --edge_features_mode hierarchical")
+
     # model-specific params
     if args.task == 'ethereum' and args.select_manifold == 'euclidean':
         EthereumEuclideanParams.add_params(parser)
@@ -130,6 +119,18 @@ def parse_default_args():
     elif args.task == 'ecd' and args.select_manifold != 'euclidean':
         ENVHyperbolicParams.add_params(parser, args.parser)
 
+    # --- EDGE FEATURE LOADING (DYNAMIC DEFAULTS) ---
+    parser.add_argument('--edge_features_mode',
+                        type=str,
+                        default='onehot',
+                        choices=['onehot', 'hierarchical'],
+                        help="How to encode edge features: 'onehot' (default, original behavior) or 'hierarchical' (duplicate edges per active hierarchical bit).")
+    dep_mapping_default = "mappings.json" if args.parser == 'spacy' else "mappings_new.json"
+    parser.add_argument('--dep_mapping',
+                        type=str,
+                        default=dep_mapping_default,
+                        help="Path to mapping.json with dep_to_index (required if --edge_features_mode hierarchical).")
+
     # <<< POS INTEGRATION: Add argument to control POS tag usage
     parser.add_argument('--use_pos_tags', action='store_true', help='Concatenate learned POS tag embeddings to node features')
     pos_vocab_size_default = 17
@@ -139,6 +140,10 @@ def parse_default_args():
     parser.add_argument('--pos_embed_dim', type=int, default=16, help="Dimension for the learnable POS tag embeddings.")
     
     args = parser.parse_args()
+    
+    if args.edge_features_mode == 'hierarchical' and not args.dep_mapping:
+        raise ValueError("--dep_mapping is required when --edge_features_mode hierarchical")
+
     set_up_fold(args)
     add_embed_size(args)
 

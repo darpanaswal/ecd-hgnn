@@ -19,4 +19,4 @@ source activate ecdgnn
 echo "Allocated GPU info:"
 nvidia-smi
 # Run training
-python main.py --task ecd --select_manifold poincare --compute_roc_auc --dropout 0.3 --use_pos_tags --pos_embed_dim 128
+python main.py --parser stanza --task ecd --select_manifold poincare --compute_roc_auc --dropout 0.3 --use_pos_tags --pos_embed_dim 128
