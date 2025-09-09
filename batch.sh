@@ -4,7 +4,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --partition=gpua100
+#SBATCH --partition=gpu
 #SBATCH --exclude=ruche-gpu17
 
 set -euo pipefail
@@ -120,7 +120,7 @@ for (( i=START; i<END; i++ )); do
     KV["$k"]="$v"
   done
 
-  run_args=(--parser stanza --task ecd --select_manifold "$SPACE" --compute_roc_auc) #--edge_features_mode hierarchical)
+  run_args=(--parser spacy --task ecd --select_manifold "$SPACE" --compute_roc_auc --edge_features_mode onehot)
   run_args+=(--dropout "${KV[dropout]}")
   TAG="cfg=${CONFIG} space=${SPACE} do=${KV[dropout]}"
 

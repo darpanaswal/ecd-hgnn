@@ -49,8 +49,8 @@ def parse_default_args():
                                                      'ecd'
                                                      ])
     parser.add_argument('--select_manifold', type=str, default='lorentz', choices=['poincare', 'lorentz', 'euclidean'])
-    # parser.add_argument('--seed', type=int, default=1755723359)
-    parser.add_argument('--seed', type=int, default=int(time.time()))
+    parser.add_argument('--seed', type=int, default=1755723359)
+    # parser.add_argument('--seed', type=int, default=int(time.time()))
     parser.add_argument('--compute_roc_auc', action='store_true', help='Compute ROC-AUC each epoch')
     # NEW: Argument to toggle class weights
     parser.add_argument('--use_class_weights', action='store_true', help='Use class weights for the loss function to handle imbalance')
@@ -64,7 +64,7 @@ def parse_default_args():
     parser.add_argument("--distributed_method", default='multi_gpu', choices=['multi_gpu', 'slurm'])
     
     # Argument to select parser for 'ecd' task
-    parser.add_argument('--parser', type=str, default='stanza', choices=['spacy', 'stanza'], help="The NLP parser used for 'ecd' task data preprocessing.")
+    parser.add_argument('--parser', type=str, default='spacy', choices=['spacy', 'stanza'], help="The NLP parser used for 'ecd' task data preprocessing.")
 
     # Custom Class Weights
     parser.add_argument('--class_weight_values', type=float, nargs=2, help='Two float values for class weights.')
