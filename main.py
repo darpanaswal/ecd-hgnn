@@ -125,7 +125,7 @@ def parse_default_args():
                         default='onehot',
                         choices=['onehot', 'hierarchical'],
                         help="How to encode edge features: 'onehot' (default, original behavior) or 'hierarchical' (duplicate edges per active hierarchical bit).")
-    dep_mapping_default = "mappings.json" if args.parser == 'spacy' else "mappings_new.json"
+    dep_mapping_default = "mappings_spacy.json" if args.parser == 'spacy' else "mappings_stanza.json"
     parser.add_argument('--dep_mapping',
                         type=str,
                         default=dep_mapping_default,

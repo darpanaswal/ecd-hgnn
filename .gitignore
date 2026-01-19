@@ -4,3 +4,4 @@ data/env_claim/
 __pycache__
 log/
 test.py
+*.sh

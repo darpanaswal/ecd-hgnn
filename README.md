@@ -1,74 +1,140 @@
-# Hyperbolic Graph Neural Networks
+# Hyperbolic Graph Neural Networks for Environmental Claim Detection
+
+This is the official repository for our paper **"Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"**, accepted at the **Student Research Workshop at IJCNLP-AACL 2025**.
 
 ## Requirements
 
-* Python 3.7
+* Python 3.7+
 * PyTorch >= 1.1
-* RDKit
+* spaCy or Stanza
+* scikit-learn
 * numpy
 * networkx
-* scikit-learn
+* datasets
+* huggingface_hub
 
-A recipe about installing the requirements is provided in `install.sh`.
+```bash
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
 
-## Data Preprocess
+## Data Setup
 
-For the Ethereum dataset, go to `data/ethereum` and run
-`download_ethereum.sh`
+Download the Environmental Claim Detection dataset:
+```bash
+python -m data.ecDataset
+```
 
-For the node classification dataset, go to `data/node` and run
-`download_node.sh`
+## Graph Construction + Features
 
-For QM8, QM9 and ZINC, go to `data/qm8`, `data/qm9` and `data/zinc`, respectively and run 
-```python get_data.py```
+Each input sentence is converted into a **dependency parsing graph**.
 
-For the synthetic dataset, go to `data/synthetic` and run
-```python generate_graphs.py```
+### Node Features
 
-For TU Dortmund datasets, go to `data/tu` and run
-```python data_preprocess.py {REDDIT-MULTI-12K, PROTEINS_full, ENZYMES, DD, COLLAB}```
+* **word2vec embedding** for each token
+* **optional learnable POS-tag embedding** concatenated to the token embedding
 
-## Run Experiments
-The code can be run on SLURM and on multiple GPUs. To run on multi GPUs, use 
+Enable POS tags:
+```bash
+--use_pos_tags --pos_embed_dim 16
+```
 
-```python -m torch.distributed.launch --nproc_per_node=NUM_GPU main.py --task {qm8, qm9, zinc, ethereum, node_classification, synthetic, dd, enzymes, proteins, reddit, collab}```
+### Edge Features
 
-## Inputs of Riemannian GNN
+Edge relations are dependency labels.
 
-Here we introduce the inputs of Riemannian GNN:
+Two supported modes:
 
-* `node_repr`: representations of each node. 
-* `adj_list`: an adjacency list, of which each row `i` consists of the neighbor IDs of node `i`. `adj_list` is padded using 0 to make each row of the same size.
-* `weight`: a weight list for weighted graphs, of which each row `i` contains the weights of neighbors. `weight` is padded using 0 to make each row of the same size.
-* `mask`: the `i`-th row of `mask` is 0 if the node `i` is padded. Otherwise, the `i`-th row is 1.
+1. **onehot** (default)  
+   Standard one-hot encoding for dependency types.
 
+2. **hierarchical**  
+   Hierarchical dependency encoding by mapping dependency labels into hierarchical bits  
+   (using `mappings_spacy.json` or `mappings_stanza.json`).
 
-## Directory
+Enable hierarchical mode:
+```bash
+--edge_features_mode hierarchical --dep_mapping mappings_spacy.json
+```
 
-* `dataset`: dataset files.
-* `gnn`: Riemannian graph neural network implementation.
-* `hyperbolic_module`: centroid-based classification and Poincaré distance.
-* `manifold`: Poincaré, Lorentz and Euclidean manifolds.
-* `optimizer`: Riemannian SGD and Riemannian AMSGrad.
-* `params`: parameters for each task.
-* `task`: task code.
-* `utils`: utility modules and functions.
+## Training
 
-## Hyperparameters
+**ECD (recommended baseline)**
+```bash
+python main.py \
+  --task ecd \
+  --select_manifold poincare \
+  --parser spacy \
+  --batch_size 128 \
+  --compute_roc_auc \
+  --use_pos_tags --pos_embed_dim 16
+```
 
-Some notable hyperparameters are listed here.
+### Balanced training (class-weighted loss)
+```bash
+python main.py \
+  --task ecd \
+  --select_manifold poincare \
+  --parser spacy \
+  --batch_size 128 \
+  --compute_roc_auc \
+  --use_class_weights \
+  --use_pos_tags --pos_embed_dim 16
+```
 
-* `lr`: learning rate for Euclidean variables.
-* `lr_hyperbolic`: learning rate for hyperbolic variables.
-* `optimizer`: optimizer for Euclidean variables.
-* `hyper_optimizer`: optimizer rate for hyperbolic variables.
-* `num_centroid`: the number of centroids for centroid-based prediction.
-* `gnn_layer`: the number of GNN layers.
-* `embed_size`: the embedding size.
-* `apply_edge_type`: a boolean value denotes multi-relational or single-relational.
-* `edge_type`: the number of relations for multi-relational datasets.
-* `select_manifold`: use the Euclidean, Poincaré or Lorentz manifold.
-* `activation`: the activation function.
+### Manual class weights
+```bash
+python main.py \
+  --task ecd \
+  --select_manifold poincare \
+  --parser spacy \
+  --use_class_weights \
+  --class_weight_values 0.8 1.6
+```
+
+## Key Arguments
+```bash
+--task ecd                          # Environmental claim detection
+--select_manifold {poincare|lorentz|euclidean}
+--parser {spacy|stanza}             # Dependency parser
+--use_pos_tags                      # Enable POS embeddings (recommended)
+--pos_embed_dim 16                  # POS embedding dimension
+--use_class_weights                 # Handle class imbalance
+--class_weight_values 0.8 1.6       # Manual class weights
+--batch_size 128                    # Batch size
+--compute_roc_auc                   # Compute AUC-ROC metric
+--edge_features_mode hierarchical   # Hierarchical edge encoding
+--dep_mapping mappings_spacy.json   # Dependency mapping file
+```
+
+## Directory Structure
+```
+├── dataset/              # Dataset loaders
+├── gnn/                  # GNN/HGNN implementations
+├── hyperbolic_module/    # Centroid distance
+├── manifold/             # Poincaré, Lorentz, Euclidean
+├── optimizer/            # Riemannian optimizers
+├── params/               # Task parameters
+├── task/                 # Task implementations
+├── utils/                # Utilities
+├── data/ecDataset.py    # ECD data downloader
+└── main.py              # Main entry point
+```
+
+## Citation
+```bibtex
+@article{aswal2025efficient,
+  title={Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks},
+  author={Aswal, Darpan and Sinha, Manjira},
+  journal={arXiv preprint arXiv:2502.13628},
+  year={2025}
+}
+```
 
 ## License
-HGNN is licensed under Creative Commons-Non Commercial 4.0. See the LICENSE file for details.
+
+This project is licensed under Creative Commons-Non Commercial 4.0. See the LICENSE file for details.
+
+## Acknowledgments
+
+This work builds upon the Hyperbolic Graph Neural Networks codebase. We thank the authors of the original HGNN implementation and the Environmental Claim Detection dataset.
