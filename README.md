@@ -1,4 +1,4 @@
-# Hyperbolic Graph Neural Networks for Environmental Claim Detection
+# Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks
 
 This is the official repository for our paper **"Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"**, accepted at the **Student Research Workshop at IJCNLP-AACL 2025**.
 
@@ -96,7 +96,7 @@ python main.py \
 ```bash
 --task ecd                          # Environmental claim detection
 --select_manifold {poincare|lorentz|euclidean}
---parser {spacy|stanza}             # Dependency parser
+--parser {spacy|stanza}             # Dependency parser. We only report scores achieved with spacy in the paper
 --use_pos_tags                      # Enable POS embeddings (recommended)
 --pos_embed_dim 16                  # POS embedding dimension
 --use_class_weights                 # Handle class imbalance
@@ -105,20 +105,6 @@ python main.py \
 --compute_roc_auc                   # Compute AUC-ROC metric
 --edge_features_mode hierarchical   # Hierarchical edge encoding
 --dep_mapping mappings_spacy.json   # Dependency mapping file
-```
-
-## Directory Structure
-```
-├── dataset/              # Dataset loaders
-├── gnn/                  # GNN/HGNN implementations
-├── hyperbolic_module/    # Centroid distance
-├── manifold/             # Poincaré, Lorentz, Euclidean
-├── optimizer/            # Riemannian optimizers
-├── params/               # Task parameters
-├── task/                 # Task implementations
-├── utils/                # Utilities
-├── data/ecDataset.py    # ECD data downloader
-└── main.py              # Main entry point
 ```
 
 ## Citation
