@@ -2,6 +2,8 @@
 
 This is the official repository for our paper **"Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"**, accepted at the **Student Research Workshop at IJCNLP-AACL 2025**.
 
+📄 **[Read the paper](https://aclanthology.org/2025.ijcnlp-srw.3.pdf)**
+
 ## Requirements
 
 * Python 3.7+
