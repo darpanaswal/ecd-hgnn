@@ -1,8 +1,9 @@
 # Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks
 
-This is the official repository for our paper **"Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"**, accepted at the **Student Research Workshop at IJCNLP-AACL 2025**.
+This is the official repository for our paper **["Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"](https://aclanthology.org/2025.ijcnlp-srw.3.pdf)**.
+Our work presents a graph-based framework for NLP tasks. We show that GNNs achieve state-of-the-art performance with 30x fewer parameters than transformer baselines for environmental claim detection. Our graph-based approach uses dependency parsing and hyperbolic geometry to model the hierarchical structure of environmental claims, offering a lightweight and interpretable alternative to large language models.
 
-📄 **[Read the paper](https://aclanthology.org/2025.ijcnlp-srw.3.pdf)**
+**Accepted at the Student Research Workshop at IJCNLP-AACL 2025**
 
 ## Requirements
 
