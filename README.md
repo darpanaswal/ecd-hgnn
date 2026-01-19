@@ -112,12 +112,23 @@ python main.py \
 
 ## Citation
 ```bibtex
-@article{aswal2025efficient,
-  title={Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks},
-  author={Aswal, Darpan and Sinha, Manjira},
-  journal={arXiv preprint arXiv:2502.13628},
-  year={2025}
+@inproceedings{aswal-sinha-2025-efficient,
+    title = "Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks",
+    author = "Aswal, Darpan  and
+      Sinha, Manjira",
+    editor = "T.y.s.s, Santosh  and
+      Shimizu, Shuichiro  and
+      Gong, Yifan",
+    booktitle = "The 14th International Joint Conference on Natural Language Processing and The 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics",
+    month = dec,
+    year = "2025",
+    address = "Mumbai, India",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.ijcnlp-srw.3/",
+    pages = "24--35",
+    ISBN = "979-8-89176-304-3"
 }
+
 ```
 
 ## License
