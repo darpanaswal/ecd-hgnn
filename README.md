@@ -3,7 +3,7 @@
 This is the official repository for our paper **["Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks"](https://aclanthology.org/2025.ijcnlp-srw.3.pdf)**.
 Our work presents a graph-based framework for NLP tasks, achieving state-of-the-art performance with GNNs using 30x fewer parameters than transformer baselines for environmental claim detection. Our graph-based approach uses dependency parsing and hyperbolic geometry to model the hierarchical structure of environmental claims, offering a lightweight and interpretable alternative to large language models.
 
-**Accepted at the Student Research Workshop at IJCNLP-AACL 2025**
+**🎉 Accepted at the Student Research Workshop at IJCNLP-AACL 2025!**
 
 ## Requirements
 
@@ -112,21 +112,12 @@ python main.py \
 
 ## Citation
 ```bibtex
-@inproceedings{aswal-sinha-2025-efficient,
-    title = "Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks",
-    author = "Aswal, Darpan  and
-      Sinha, Manjira",
-    editor = "T.y.s.s, Santosh  and
-      Shimizu, Shuichiro  and
-      Gong, Yifan",
-    booktitle = "The 14th International Joint Conference on Natural Language Processing and The 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics",
-    month = dec,
-    year = "2025",
-    address = "Mumbai, India",
-    publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2025.ijcnlp-srw.3/",
-    pages = "24--35",
-    ISBN = "979-8-89176-304-3"
+@inproceedings{aswal2025efficient,
+  title={Efficient Environmental Claim Detection with Hyperbolic Graph Neural Networks},
+  author={Aswal, Darpan and Sinha, Manjira},
+  booktitle={The 14th International Joint Conference on Natural Language Processing and The 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics},
+  pages={24--35},
+  year={2025}
 }
 
 ```
